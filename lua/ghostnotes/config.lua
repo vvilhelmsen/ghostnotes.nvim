@@ -6,6 +6,7 @@ M.opts = {
     clear_line = "<leader>gnc",
     find_global = "<leader>gnf",
     find_local = "<leader>gnF",
+    edit_line = "<leader>gne",
   },
   namespace = "ghostnotes",
 }
