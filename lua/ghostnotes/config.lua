@@ -4,7 +4,8 @@ M.opts = {
   keymaps = {
     add = "<leader>åc",
     clear = "<leader>åk",
-    find = "<leader>åf",
+    find_global = "<leader>åf",
+    find_local = "<leader>åF",
   },
   namespace = "ghostnotes",
 }
