@@ -2,10 +2,10 @@ local M = {}
 
 M.opts = {
   keymaps = {
-    add = "<leader>åc",
-    clear = "<leader>åk",
-    find_global = "<leader>åf",
-    find_local = "<leader>åF",
+    add = "<leader>gna",
+    clear_line = "<leader>gnc",
+    find_global = "<leader>gnf",
+    find_local = "<leader>gnF",
   },
   namespace = "ghostnotes",
 }

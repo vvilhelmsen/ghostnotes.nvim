@@ -30,7 +30,7 @@ end
 
 function M.init()
 	vim.keymap.set("n", config.opts.keymaps.add, M.add_note, { desc = "Add ghost note" })
-	vim.keymap.set("n", config.opts.keymaps.clear, M.clear_notes, { desc = "Clear ghost notes (buffer)" })
+    vim.keymap.set("n", config.opts.keymaps.clear_line, M.clear_note_in_line, { desc = "Clear ghost note on line" })
 	vim.keymap.set("n", config.opts.keymaps.find_global, M.find_notes_global, { desc = "Find ghost notes (global)" })
     vim.keymap.set("n", config.opts.keymaps.find_local, M.find_notes_project, { desc = "Find ghost notes (project)" })
 
@@ -81,10 +81,33 @@ function M.add_note()
 	utils.write_json(global_path, global_existing)
 end
 
-function M.clear_notes()
-	vim.api.nvim_buf_clear_namespace(0, ns, 0, -1)
-	notes = {}
-	vim.notify("Cleared all ghost notes", vim.log.levels.INFO)
+function M.clear_note_in_line()
+    local bufnr = vim.api.nvim_get_current_buf()
+    local bufname = vim.api.nvim_buf_get_name(bufnr)
+    local row = vim.api.nvim_win_get_cursor(0)[1] - 1
+
+    vim.api.nvim_buf_clear_namespace(bufnr, ns, row, row + 1)
+
+    -- Remove from git project file
+    local git_root = utils.get_git_root()
+    if git_root then
+        local path = git_root .. "/.ghostnotes.json"
+        local existing = utils.read_json(path)
+        local new_notes = vim.tbl_filter(function(note)
+            return not (note.bufname == bufname and note.row == row)
+        end, existing)
+        utils.write_json(path, new_notes)
+    end
+
+    -- Remove from global file
+    local global_path = utils.get_global_path()
+    local global_existing = utils.read_json(global_path)
+    local new_global_notes = vim.tbl_filter(function(note)
+        return not (note.bufname == bufname and note.row == row)
+    end, global_existing)
+    utils.write_json(global_path, new_global_notes)
+
+    vim.notify("Cleared ghost note on this line", vim.log.levels.INFO)
 end
 
 function M.find_notes_project()
