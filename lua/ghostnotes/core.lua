@@ -9,13 +9,16 @@ local notes = {}
 local function apply_notes_for_buffer(bufnr)
     local bufname = vim.api.nvim_buf_get_name(bufnr)
     local git_root = utils.get_git_root()
-    if not git_root then
-        return
-    end
-    local path = git_root .. "/.ghostnotes.json"
-    local all_notes = utils.read_json(path)
+    local path, all_notes
 
-    -- Clear previous ghost notes for this buffer/namespace
+    if git_root then
+        path = git_root .. "/.ghostnotes.json"
+        all_notes = utils.read_json(path)
+    else
+        path = utils.get_global_path()
+        all_notes = utils.read_json(path)
+    end
+
     vim.api.nvim_buf_clear_namespace(bufnr, ns, 0, -1)
 
     for _, note in ipairs(all_notes) do
