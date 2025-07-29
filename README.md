@@ -1,6 +1,7 @@
 # 👻 ghostnotes.nvim
 
 Add simple, persistent virtual notes to any line in your code. Project-scoped or global.
+
 (very much early days / work in progress)
 
 ---
