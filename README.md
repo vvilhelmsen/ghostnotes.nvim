@@ -1,7 +1,6 @@
-````markdown
 # 👻 ghostnotes.nvim
 
-Add simple, persistent virtual notes to any line in your code. Project-scoped (in git repos) or global.
+Add simple, persistent virtual notes to any line in your code. Project-scoped or global.
 
 ---
 
@@ -15,11 +14,10 @@ Add simple, persistent virtual notes to any line in your code. Project-scoped (i
 
 ## Install
 
-<details>
-<summary>lazy.nvim example</summary>
+lazy.nvim:
 
 ```lua
-{
+return {
   "vvilhelmsen/ghostnotes.nvim",
   config = function()
     require("ghostnotes").config()
@@ -27,11 +25,9 @@ Add simple, persistent virtual notes to any line in your code. Project-scoped (i
 }
 ````
 
-</details>
-
 ---
 
-## Keymaps
+## Default Keymaps
 
 | Action       | Default       |
 | ------------ | ------------- |
