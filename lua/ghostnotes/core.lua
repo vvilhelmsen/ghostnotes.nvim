@@ -7,21 +7,25 @@ local ns = vim.api.nvim_create_namespace(config.opts.namespace)
 local notes = {}
 
 local function apply_notes_for_buffer(bufnr)
-	local bufname = vim.api.nvim_buf_get_name(bufnr)
-	local git_root = utils.get_git_root()
-	if not git_root then
-		return
-	end
-	local path = git_root .. "/.ghostnotes.json"
-	local all_notes = utils.read_json(path)
-	for _, note in ipairs(all_notes) do
-		if note.bufname == bufname then
-			vim.api.nvim_buf_set_extmark(bufnr, ns, note.row, 0, {
-				virt_text = { { "👻 " .. note.text, "Comment" } },
-				virt_text_pos = "eol",
-			})
-		end
-	end
+    local bufname = vim.api.nvim_buf_get_name(bufnr)
+    local git_root = utils.get_git_root()
+    if not git_root then
+        return
+    end
+    local path = git_root .. "/.ghostnotes.json"
+    local all_notes = utils.read_json(path)
+
+    -- Clear previous ghost notes for this buffer/namespace
+    vim.api.nvim_buf_clear_namespace(bufnr, ns, 0, -1)
+
+    for _, note in ipairs(all_notes) do
+        if note.bufname == bufname then
+            vim.api.nvim_buf_set_extmark(bufnr, ns, note.row, 0, {
+                virt_text = { { "👻 " .. note.text, "Comment" } },
+                virt_text_pos = "eol",
+            })
+        end
+    end
 end
 
 function M.init()

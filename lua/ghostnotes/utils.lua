@@ -19,7 +19,7 @@ function M.write_json(path, data)
   vim.fn.writefile(vim.split(json, "\n"), path)
 end
 
--- Finds file containing ALL ghostnotes
+-- Finds file containing all ghost notes
 function M.get_global_path()
   local dir = vim.fn.stdpath("data") .. "/ghostnotes"
   vim.fn.mkdir(dir, "p")
