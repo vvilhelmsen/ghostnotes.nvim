@@ -19,6 +19,14 @@ function M.write_json(path, data)
   vim.fn.writefile(vim.split(json, "\n"), path)
 end
 
+-- Finds file containing ALL ghostnotes
+function M.get_global_path()
+  local dir = vim.fn.stdpath("data") .. "/ghostnotes"
+  vim.fn.mkdir(dir, "p")
+  return dir .. "/ghostnotes.json"
+end
+
+-- Finds notes in git project
 function M.find_notes_project()
   local git_root = M.get_git_root()
   if not git_root then
