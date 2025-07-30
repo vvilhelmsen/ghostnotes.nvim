@@ -117,11 +117,11 @@ function M.find_notes_project()
 			-- manually apply ghost note extmark after jump
 			local bufnr = vim.api.nvim_get_current_buf()
 			vim.api.nvim_buf_clear_namespace(bufnr, ns, choice.row, choice.row + 1)
-			local first_line = choice.text:match("([^\n]+)") or choice.text
-			vim.api.nvim_buf_set_extmark(bufnr, ns, choice.row, 0, {
-				virt_text = { { config.opts.note_prefix .. first_line, "Comment" } },
-				virt_text_pos = "eol",
-			})
+            local first_line = choice.text:match("([^\n]+)") or choice.text
+            vim.api.nvim_buf_set_extmark(bufnr, ns, choice.row, 0, {
+                virt_text = { { config.opts.note_prefix .. first_line, "Comment" } },
+                virt_text_pos = "eol",
+            })
 		end
 	end)
 end
@@ -163,10 +163,11 @@ function M.find_notes_global()
 			local bufnr = vim.api.nvim_get_current_buf()
 			vim.api.nvim_buf_clear_namespace(bufnr, ns, choice.row, choice.row + 1)
 
-			vim.api.nvim_buf_set_extmark(bufnr, ns, choice.row, 0, {
-				virt_text = { { config.opts.note_prefix .. choice.text, "Comment" } },
-				virt_text_pos = "eol",
-			})
+            local first_line = choice.text:match("([^\n]+)") or choice.text
+            vim.api.nvim_buf_set_extmark(bufnr, ns, choice.row, 0, {
+                virt_text = { { config.opts.note_prefix .. first_line, "Comment" } },
+                virt_text_pos = "eol",
+            })
 		end
 	end)
 end
@@ -235,19 +236,15 @@ function M.edit_or_view_note()
 		end
 	end
 
-	local max_width, lines = 60, {}
-	if note then
-		for line in note.text:gmatch("[^\n]+") do
-			while #line > max_width do
-				table.insert(lines, line:sub(1, max_width))
-				line = line:sub(max_width + 1)
-			end
-			table.insert(lines, line)
-		end
-	end
-	if #lines == 0 then
-		lines = { "" }
-	end
+    local lines = {}
+    if note then
+        for line in note.text:gmatch("([^\n]*)\n?") do
+            table.insert(lines, line)
+        end
+    end
+    if #lines == 0 then
+        lines = { "" }
+    end
 
 	local float_buf = vim.api.nvim_create_buf(false, true)
 	vim.api.nvim_buf_set_lines(float_buf, 0, -1, false, lines)
