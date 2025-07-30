@@ -1,7 +1,6 @@
 local M = {}
 M.opts = {
 	keymaps = {
-		add = "<leader>gna",
 		clear_line = "<leader>gnc",
 		find_global = "<leader>gnf",
 		find_local = "<leader>gnF",

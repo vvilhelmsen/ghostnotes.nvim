@@ -3,7 +3,6 @@ local utils = require("ghostnotes.utils")
 local M = {}
 
 local ns = vim.api.nvim_create_namespace(config.opts.namespace)
-local notes = {}
 
 local function apply_notes_for_buffer(bufnr)
 	local bufname = vim.api.nvim_buf_get_name(bufnr)
@@ -32,7 +31,6 @@ local function apply_notes_for_buffer(bufnr)
 end
 
 function M.init()
-	vim.keymap.set("n", config.opts.keymaps.add, M.add_note, { desc = "Add ghost note" })
 	vim.keymap.set("n", config.opts.keymaps.clear_line, M.clear_note_in_line, { desc = "Clear ghost note" })
 	vim.keymap.set("n", config.opts.keymaps.find_global, M.find_notes_global, { desc = "Find ghost notes (global)" })
 	vim.keymap.set("n", config.opts.keymaps.find_local, M.find_notes_project, { desc = "Find ghost notes (project)" })
@@ -45,47 +43,6 @@ function M.init()
 		end,
 		desc = "Restore ghost notes for file",
 	})
-end
-
-function M.add_note()
-	local bufnr = vim.api.nvim_get_current_buf()
-	local bufname = vim.api.nvim_buf_get_name(bufnr)
-	local row = vim.api.nvim_win_get_cursor(0)[1] - 1
-	local note = vim.fn.input("Ghost note: ")
-	if note == "" then
-		return
-	end
-
-	local new_note = {
-		bufnr = bufnr,
-		row = row,
-		text = note,
-		bufname = bufname,
-		timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ"),
-	}
-
-	table.insert(notes, new_note)
-
-	local first_line = note:match("([^\n]+)") or note
-	vim.api.nvim_buf_set_extmark(bufnr, ns, row, 0, {
-		virt_text = { { config.opts.note_prefix .. first_line, "Comment" } },
-		virt_text_pos = "eol",
-	})
-
-	-- append (local, if in git repo)
-	local git_root = utils.get_git_root()
-	if git_root then
-		local path = git_root .. "/.ghostnotes.json"
-		local existing = utils.read_json(path)
-		table.insert(existing, new_note)
-		utils.write_json(path, existing)
-	end
-
-	-- append (global, always)
-	local global_path = utils.get_global_path()
-	local global_existing = utils.read_json(global_path)
-	table.insert(global_existing, new_note)
-	utils.write_json(global_path, global_existing)
 end
 
 function M.clear_note_in_line()
