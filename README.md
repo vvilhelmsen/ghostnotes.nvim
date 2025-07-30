@@ -1,27 +1,29 @@
 # 👻 ghostnotes.nvim
 
-Add simple, persistent virtual notes to any line in your code. Project-scoped or global.
+Add simple, persistent virtual notes to any line in your code. Markdown supported.
 
-( very much early days / work in progress - contributions are welcome! )
+Contributions are welcome!
 
 ---
 ## Table of Contents
 
-- [Features](#features)
+- [Example](#example)
 - [Install](#install)
 - [Default Keymaps](#default-keymaps)
-- [Usage](#usage)
 - [How it works](#how-it-works)
-- [Example](#example)
 - [License](#mit-license)
 
 ---
 
-## Features
+## Example
 
-- Add/edit/clear notes on any line
-- Project or global storage (JSON)
-- Quick navigation to all notes using snacks
+### Adding a note
+
+<img width="1770" height="1054" alt="image" src="https://github.com/user-attachments/assets/c7d70b15-3e4d-4875-8da0-b4c02dedc3fc" />
+
+### Finding notes
+
+<img width="912" height="147" alt="image" src="https://github.com/user-attachments/assets/bb684922-719e-4371-8f24-97dc1d40b31b" />
 
 ---
 ## Install
@@ -36,52 +38,24 @@ return {
   end,
 }
 ````
-
 ---
 
 ## Default Keymaps
 
-| Action       | Default       |
-| ------------ | ------------- |
-| Add          | `<leader>gna` |
-| Edit         | `<leader>gne` |
-| Clear line   | `<leader>gnc` |
-| Find global  | `<leader>gnf` |
-| Find project | `<leader>gnF` |
-
----
-
-## Usage
-
-* Place cursor, add/edit/clear note with mapped keys
-* Use find commands to jump to notes
+| Action             | Default         |
+| ------------------ | ---------------|
+| Add / View / Edit  | `<leader>gne`  |
+| Clear line         | `<leader>gnc`  |
+| Find global        | `<leader>gnf`  |
+| Find in project    | `<leader>gnF`  |
+| Yank note          | `<leader>gny`  |
 
 ---
 
 ## How it works
 
-* Notes are stored as JSON in your git repo or globally
-* No file changes—ghost notes only appear as virtual text
-
----
-
-## Example
-
-### Creating a note
-*(Default keybind: `leader + gna`)*
-
-<img width="1032" height="782" alt="image" src="https://github.com/user-attachments/assets/4b76c022-c776-4d05-a3d7-6c16451f30b9" />
-
-You now have a ghost note attached to your line:
-
-<img width="733" height="18" alt="image" src="https://github.com/user-attachments/assets/1e7f8cb6-6435-4473-9edf-79cb10a8937c" />
-
----
-
-### Finding notes using snacks
-
-<img width="1026" height="766" alt="image" src="https://github.com/user-attachments/assets/a91445cd-f571-47fa-8043-53390e26ec86" />
-
+* Notes are stored as JSON in your git repo and globally
+* No file changes - ghost notes only appear as virtual text
 
 ---
 
