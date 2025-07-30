@@ -1,5 +1,4 @@
 local M = {}
-
 M.opts = {
 	keymaps = {
 		add = "<leader>gna",
@@ -7,6 +6,7 @@ M.opts = {
 		find_global = "<leader>gnf",
 		find_local = "<leader>gnF",
 		edit_line = "<leader>gne",
+        yank_line = "<leader>gny",
 	},
 	namespace = "ghostnotes",
     note_prefix = "👻 ",
