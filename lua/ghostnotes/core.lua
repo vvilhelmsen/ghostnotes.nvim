@@ -221,8 +221,13 @@ function M.find_notes_global()
 		end,
 	}, function(choice)
 		if choice and choice.bufname then
-			vim.cmd("edit " .. vim.fn.fnameescape(choice.bufname))
-			vim.api.nvim_win_set_cursor(0, { (choice.row or 0) + 1, 0 })
+            local bufnr = vim.fn.bufnr(choice.bufname, false)
+            if bufnr ~= -1 then
+            vim.cmd("buffer " .. bufnr)
+            else
+            vim.cmd("edit " .. vim.fn.fnameescape(choice.bufname))
+            end
+            vim.api.nvim_win_set_cursor(0, { (choice.row or 0) + 1, 0 })
 		end
 	end)
 end
