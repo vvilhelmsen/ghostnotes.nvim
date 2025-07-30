@@ -1,6 +1,5 @@
 local config = require("ghostnotes.config")
 local utils = require("ghostnotes.utils")
-
 local M = {}
 
 local ns = vim.api.nvim_create_namespace(config.opts.namespace)
@@ -24,7 +23,7 @@ local function apply_notes_for_buffer(bufnr)
 	for _, note in ipairs(all_notes) do
 		if note.bufname == bufname then
 			vim.api.nvim_buf_set_extmark(bufnr, ns, note.row, 0, {
-				virt_text = { { "👻 " .. note.text, "Comment" } },
+				virt_text = { { config.opts.note_prefix .. note.text, "Comment" } },
 				virt_text_pos = "eol",
 			})
 		end
@@ -105,7 +104,7 @@ function M.edit_note_in_line()
     for _, note in ipairs(all_notes) do
         if note.bufname == bufname and note.row == row then
             vim.api.nvim_buf_set_extmark(bufnr, ns, row, 0, {
-                virt_text = { { "👻 " .. note.text, "Comment" } },
+				virt_text = { { config.opts.note_prefix .. note.text, "Comment" } },
                 virt_text_pos = "eol",
             })
         end
@@ -154,7 +153,7 @@ function M.add_note()
 	table.insert(notes, new_note)
 
 	vim.api.nvim_buf_set_extmark(bufnr, ns, row, 0, {
-		virt_text = { { "👻 " .. note, "Comment" } },
+		virt_text = { { config.opts.note_prefix .. note, "Comment" } },
 		virt_text_pos = "eol",
 	})
 
