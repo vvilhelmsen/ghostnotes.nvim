@@ -157,6 +157,7 @@ function M.add_note()
 		virt_text_pos = "eol",
 	})
 
+    -- append (local, if in git repo)
 	local git_root = utils.get_git_root()
 	if git_root then
 		local path = git_root .. "/.ghostnotes.json"
@@ -165,7 +166,7 @@ function M.add_note()
 		utils.write_json(path, existing)
 	end
 
-	-- Append to global file
+	-- append (global, always)
 	local global_path = utils.get_global_path()
 	local global_existing = utils.read_json(global_path)
 	table.insert(global_existing, new_note)
@@ -179,7 +180,7 @@ function M.clear_note_in_line()
 
 	vim.api.nvim_buf_clear_namespace(bufnr, ns, row, row + 1)
 
-	-- Remove from git project file
+	-- remove (local)
 	local git_root = utils.get_git_root()
 	if git_root then
 		local path = git_root .. "/.ghostnotes.json"
@@ -190,7 +191,7 @@ function M.clear_note_in_line()
 		utils.write_json(path, new_notes)
 	end
 
-	-- Remove from global file
+	-- remove (global)
 	local global_path = utils.get_global_path()
 	local global_existing = utils.read_json(global_path)
 	local new_global_notes = vim.tbl_filter(function(note)
@@ -220,15 +221,31 @@ function M.find_notes_global()
 			return string.format("%s:%d → %s", name, (item.row or 0) + 1, item.text)
 		end,
 	}, function(choice)
-		if choice and choice.bufname then
-            local bufnr = vim.fn.bufnr(choice.bufname, false)
-            if bufnr ~= -1 then
-            vim.cmd("buffer " .. bufnr)
+        if choice and choice.bufname then
+            local cur_buf = vim.api.nvim_get_current_buf()
+            local cur_name = vim.api.nvim_buf_get_name(cur_buf)
+            if cur_name == choice.bufname then
+                -- if already in buffer: move cursor, no reload
+                vim.api.nvim_win_set_cursor(0, { (choice.row or 0) + 1, 0 })
             else
-            vim.cmd("edit " .. vim.fn.fnameescape(choice.bufname))
+                -- switch to buffer if loaded, otherwise edit
+                local bufnr = vim.fn.bufnr(choice.bufname, false)
+                if bufnr ~= -1 then
+                    vim.cmd("buffer " .. bufnr)
+                else
+                    vim.cmd("edit " .. vim.fn.fnameescape(choice.bufname))
+                end
+                vim.api.nvim_win_set_cursor(0, { (choice.row or 0) + 1, 0 })
             end
-            vim.api.nvim_win_set_cursor(0, { (choice.row or 0) + 1, 0 })
-		end
+
+            -- manually apply ghost note extmark after jump
+            local bufnr = vim.api.nvim_get_current_buf()
+            vim.api.nvim_buf_clear_namespace(bufnr, ns, choice.row, choice.row + 1)
+            vim.api.nvim_buf_set_extmark(bufnr, ns, choice.row, 0, {
+                virt_text = { { config.opts.note_prefix .. choice.text, "Comment" } },
+                virt_text_pos = "eol",
+            })
+        end
 	end)
 end
 
