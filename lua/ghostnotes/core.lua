@@ -22,8 +22,9 @@ local function apply_notes_for_buffer(bufnr)
 
 	for _, note in ipairs(all_notes) do
 		if note.bufname == bufname then
+			local first_line = note.text:match("([^\n]+)") or note.text
 			vim.api.nvim_buf_set_extmark(bufnr, ns, note.row, 0, {
-				virt_text = { { config.opts.note_prefix .. note.text, "Comment" } },
+				virt_text = { { config.opts.note_prefix .. first_line, "Comment" } },
 				virt_text_pos = "eol",
 			})
 		end
@@ -65,8 +66,9 @@ function M.add_note()
 
 	table.insert(notes, new_note)
 
+	local first_line = note:match("([^\n]+)") or note
 	vim.api.nvim_buf_set_extmark(bufnr, ns, row, 0, {
-		virt_text = { { config.opts.note_prefix .. note, "Comment" } },
+		virt_text = { { config.opts.note_prefix .. first_line, "Comment" } },
 		virt_text_pos = "eol",
 	})
 
@@ -131,9 +133,11 @@ function M.find_notes_project()
 
 	vim.ui.select(project_notes, {
 		prompt = "Project Ghost Notes",
+
 		format_item = function(item)
 			local name = vim.fn.fnamemodify(item.bufname, ":t")
-			return string.format("%s:%d → %s", name, (item.row or 0) + 1, item.text)
+			local headline = item.text:match("([^\n]+)") or item.text
+			return string.format("%s:%d → %s", name, (item.row or 0) + 1, headline)
 		end,
 	}, function(choice)
 		if choice and choice.bufname then
@@ -156,8 +160,9 @@ function M.find_notes_project()
 			-- manually apply ghost note extmark after jump
 			local bufnr = vim.api.nvim_get_current_buf()
 			vim.api.nvim_buf_clear_namespace(bufnr, ns, choice.row, choice.row + 1)
+			local first_line = choice.text:match("([^\n]+)") or choice.text
 			vim.api.nvim_buf_set_extmark(bufnr, ns, choice.row, 0, {
-				virt_text = { { config.opts.note_prefix .. choice.text, "Comment" } },
+				virt_text = { { config.opts.note_prefix .. first_line, "Comment" } },
 				virt_text_pos = "eol",
 			})
 		end
@@ -175,8 +180,9 @@ function M.find_notes_global()
 	vim.ui.select(all_notes, {
 		prompt = "All Ghost Notes (Global)",
 		format_item = function(item)
-			local name = vim.fn.fnamemodify(item.bufname or "?", ":t")
-			return string.format("%s:%d → %s", name, (item.row or 0) + 1, item.text)
+			local name = vim.fn.fnamemodify(item.bufname, ":t")
+			local headline = item.text:match("([^\n]+)") or item.text
+			return string.format("%s:%d → %s", name, (item.row or 0) + 1, headline)
 		end,
 	}, function(choice)
 		if choice and choice.bufname then
@@ -199,6 +205,7 @@ function M.find_notes_global()
 			-- manually apply ghost note extmark after jump
 			local bufnr = vim.api.nvim_get_current_buf()
 			vim.api.nvim_buf_clear_namespace(bufnr, ns, choice.row, choice.row + 1)
+
 			vim.api.nvim_buf_set_extmark(bufnr, ns, choice.row, 0, {
 				virt_text = { { config.opts.note_prefix .. choice.text, "Comment" } },
 				virt_text_pos = "eol",
@@ -258,14 +265,14 @@ function M.edit_or_view_note()
 		local project_path = git_root .. "/.ghostnotes.json"
 		for _, n in ipairs(utils.read_json(project_path)) do
 			if n.bufname == bufname and n.row == row then
-                note = vim.deepcopy(n)
+				note = vim.deepcopy(n)
 			end
 		end
 	end
 	if not note then
 		for _, n in ipairs(utils.read_json(global_path)) do
 			if n.bufname == bufname and n.row == row then
-                note = vim.deepcopy(n)
+				note = vim.deepcopy(n)
 				break
 			end
 		end
@@ -281,7 +288,9 @@ function M.edit_or_view_note()
 			table.insert(lines, line)
 		end
 	end
-	if #lines == 0 then lines = { "" } end
+	if #lines == 0 then
+		lines = { "" }
+	end
 
 	local float_buf = vim.api.nvim_create_buf(false, true)
 	vim.api.nvim_buf_set_lines(float_buf, 0, -1, false, lines)
@@ -291,20 +300,20 @@ function M.edit_or_view_note()
 	local editor_width = vim.o.columns
 	local editor_height = vim.o.lines
 
-    local float_width  = math.floor(editor_width * 0.5)
-    local float_height = math.max(math.floor(editor_height * 0.75), #lines + 2)
+	local float_width = math.floor(editor_width * 0.5)
+	local float_height = math.max(math.floor(editor_height * 0.75), #lines + 2)
 
-    local win = vim.api.nvim_open_win(float_buf, true, {
-    relative = "editor",
-    width = float_width,
-    height = float_height,
-    row = math.floor((editor_height - float_height) / 2),
-    col = math.floor((editor_width - float_width) / 2),
-    style = "minimal",
-    border = { "╭","─","╮","│","╯","─","╰","│" },
-    title = " press q to exit / save ",
-    title_pos = "center",
-    })
+	local win = vim.api.nvim_open_win(float_buf, true, {
+		relative = "editor",
+		width = float_width,
+		height = float_height,
+		row = math.floor((editor_height - float_height) / 2),
+		col = math.floor((editor_width - float_width) / 2),
+		style = "minimal",
+		border = { "╭", "─", "╮", "│", "╯", "─", "╰", "│" },
+        title = " ⏎ press q to save/exit   ┃   1st line: headline   ┃   2nd+: body ",
+		title_pos = "center",
+	})
 
 	local function upsert_note(text)
 		-- text is a table of lines from the buffer, join with newlines
@@ -332,11 +341,14 @@ function M.edit_or_view_note()
 			end
 			utils.write_json(path, notes)
 		end
-		if git_root then upsert(git_root .. "/.ghostnotes.json") end
+		if git_root then
+			upsert(git_root .. "/.ghostnotes.json")
+		end
 		upsert(global_path)
 		vim.api.nvim_buf_clear_namespace(bufnr, ns, row, row + 1)
+		local first_line = text:match("([^\n]+)") or text
 		vim.api.nvim_buf_set_extmark(bufnr, ns, row, 0, {
-			virt_text = { { config.opts.note_prefix .. text, "Comment" } },
+			virt_text = { { config.opts.note_prefix .. first_line, "Comment" } },
 			virt_text_pos = "eol",
 		})
 		vim.notify(note and "Saved ghost note" or "Added ghost note", vim.log.levels.INFO)
@@ -350,7 +362,9 @@ function M.edit_or_view_note()
 			end, notes)
 			utils.write_json(path, filtered)
 		end
-		if git_root then remove_note(git_root .. "/.ghostnotes.json") end
+		if git_root then
+			remove_note(git_root .. "/.ghostnotes.json")
+		end
 		remove_note(global_path)
 		vim.api.nvim_buf_clear_namespace(bufnr, ns, row, row + 1)
 		vim.notify("Deleted ghost note", vim.log.levels.INFO)
@@ -360,7 +374,9 @@ function M.edit_or_view_note()
 		local new_lines = vim.api.nvim_buf_get_lines(float_buf, 0, -1, false)
 		local new_text = table.concat(new_lines, "\n")
 		if new_text:match("^%s*$") then
-			if note then delete_note() end
+			if note then
+				delete_note()
+			end
 		else
 			upsert_note(new_lines)
 		end
@@ -375,11 +391,11 @@ function M.edit_or_view_note()
 		{ nowait = true, noremap = true, silent = true }
 	)
 	-- prevents leaving with escape
-	vim.api.nvim_create_autocmd({ "BufLeave"}, {
+	vim.api.nvim_create_autocmd({ "BufLeave" }, {
 		buffer = float_buf,
 		once = true,
 		callback = function()
-        save_and_close()
+			save_and_close()
 		end,
 	})
 
