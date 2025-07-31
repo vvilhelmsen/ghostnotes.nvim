@@ -4,6 +4,14 @@ local M = {}
 
 local ns = vim.api.nvim_create_namespace(config.opts.namespace)
 
+local function get_note_headline(note)
+	local first_line = note.text:match("([^\n]+)") or note.text
+	if note.text:find("\n") then
+		return first_line .. " [..]"
+	end
+	return first_line
+end
+
 local function apply_notes_for_buffer(bufnr)
 	local bufname = vim.api.nvim_buf_get_name(bufnr)
 	local git_root = utils.get_git_root()
@@ -21,9 +29,9 @@ local function apply_notes_for_buffer(bufnr)
 
 	for _, note in ipairs(all_notes) do
 		if note.bufname == bufname then
-			local first_line = note.text:match("([^\n]+)") or note.text
+			local display_text = get_note_headline(note)
 			vim.api.nvim_buf_set_extmark(bufnr, ns, note.row, 0, {
-				virt_text = { { config.opts.note_prefix .. first_line, "Comment" } },
+				virt_text = { { config.opts.note_prefix .. display_text, "Comment" } },
 				virt_text_pos = "eol",
 			})
 		end
@@ -93,7 +101,7 @@ function M.find_notes_project()
 
 		format_item = function(item)
 			local name = vim.fn.fnamemodify(item.bufname, ":t")
-			local headline = item.text:match("([^\n]+)") or item.text
+			local headline = get_note_headline(item)
 			return string.format("%s:%d → %s", name, (item.row or 0) + 1, headline)
 		end,
 	}, function(choice)
@@ -117,9 +125,9 @@ function M.find_notes_project()
 			-- manually apply ghost note extmark after jump
 			local bufnr = vim.api.nvim_get_current_buf()
 			vim.api.nvim_buf_clear_namespace(bufnr, ns, choice.row, choice.row + 1)
-            local first_line = choice.text:match("([^\n]+)") or choice.text
+            local display_text = get_note_headline(choice)
             vim.api.nvim_buf_set_extmark(bufnr, ns, choice.row, 0, {
-                virt_text = { { config.opts.note_prefix .. first_line, "Comment" } },
+                virt_text = { { config.opts.note_prefix .. display_text, "Comment" } },
                 virt_text_pos = "eol",
             })
 		end
@@ -138,7 +146,7 @@ function M.find_notes_global()
 		prompt = "All Ghost Notes (Global)",
 		format_item = function(item)
 			local name = vim.fn.fnamemodify(item.bufname, ":t")
-			local headline = item.text:match("([^\n]+)") or item.text
+			local headline = get_note_headline(item)
 			return string.format("%s:%d → %s", name, (item.row or 0) + 1, headline)
 		end,
 	}, function(choice)
@@ -162,10 +170,9 @@ function M.find_notes_global()
 			-- manually apply ghost note extmark after jump
 			local bufnr = vim.api.nvim_get_current_buf()
 			vim.api.nvim_buf_clear_namespace(bufnr, ns, choice.row, choice.row + 1)
-
-            local first_line = choice.text:match("([^\n]+)") or choice.text
+            local display_text = get_note_headline(choice)
             vim.api.nvim_buf_set_extmark(bufnr, ns, choice.row, 0, {
-                virt_text = { { config.opts.note_prefix .. first_line, "Comment" } },
+                virt_text = { { config.opts.note_prefix .. display_text, "Comment" } },
                 virt_text_pos = "eol",
             })
 		end
@@ -269,6 +276,8 @@ function M.edit_or_view_note()
 		title_pos = "center",
 	})
 
+    vim.api.nvim_win_set_option(win, "wrap", true)
+
 	local function upsert_note(text)
 		-- text is a table of lines from the buffer, join with newlines
 		text = table.concat(text, "\n")
@@ -300,9 +309,9 @@ function M.edit_or_view_note()
 		end
 		upsert(global_path)
 		vim.api.nvim_buf_clear_namespace(bufnr, ns, row, row + 1)
-		local first_line = text:match("([^\n]+)") or text
+		local display_text = get_note_headline(new_note)
 		vim.api.nvim_buf_set_extmark(bufnr, ns, row, 0, {
-			virt_text = { { config.opts.note_prefix .. first_line, "Comment" } },
+			virt_text = { { config.opts.note_prefix .. display_text, "Comment" } },
 			virt_text_pos = "eol",
 		})
 		vim.notify(note and "Saved ghost note" or "Added ghost note", vim.log.levels.INFO)
