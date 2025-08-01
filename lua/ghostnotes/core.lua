@@ -108,28 +108,106 @@ function M.find_notes_project()
 		if choice and choice.bufname then
 			local cur_buf = vim.api.nvim_get_current_buf()
 			local cur_name = vim.api.nvim_buf_get_name(cur_buf)
-			if cur_name == choice.bufname then
-				-- already in buffer: just move cursor
-				vim.api.nvim_win_set_cursor(0, { (choice.row or 0) + 1, 0 })
-			else
-				-- switch or edit buffer
+
+			-- Open the buffer if needed
+			if cur_name ~= choice.bufname then
 				local bufnr = vim.fn.bufnr(choice.bufname, false)
 				if bufnr ~= -1 then
 					vim.cmd("buffer " .. bufnr)
 				else
 					vim.cmd("edit " .. vim.fn.fnameescape(choice.bufname))
 				end
-				vim.api.nvim_win_set_cursor(0, { (choice.row or 0) + 1, 0 })
 			end
 
-			-- manually apply ghost note extmark after jump
+			-- in the target buffer
 			local bufnr = vim.api.nvim_get_current_buf()
-			vim.api.nvim_buf_clear_namespace(bufnr, ns, choice.row, choice.row + 1)
-            local display_text = get_note_headline(choice)
-            vim.api.nvim_buf_set_extmark(bufnr, ns, choice.row, 0, {
-                virt_text = { { config.opts.note_prefix .. display_text, "Comment" } },
-                virt_text_pos = "eol",
-            })
+			local last_line = vim.api.nvim_buf_line_count(bufnr)
+			local target_row = (choice.row or 0)
+
+			-- clear the old extmark
+			vim.api.nvim_buf_clear_namespace(bufnr, ns, target_row, target_row + 1)
+
+			if target_row >= 0 and target_row < last_line then
+				-- Original position exists: move cursor there
+				local ok, err = pcall(vim.api.nvim_win_set_cursor, 0, { target_row + 1, 0 })
+				if not ok then
+					vim.notify("Failed to set cursor: " .. err, vim.log.levels.WARN)
+				end
+
+				-- Apply extmark at the original position
+				local display_text = get_note_headline(choice)
+				vim.api.nvim_buf_set_extmark(bufnr, ns, target_row, 0, {
+					virt_text = { { config.opts.note_prefix .. display_text, "Comment" } },
+					virt_text_pos = "eol",
+				})
+			else
+				-- Try to find a new position
+				local existing_notes = utils.read_json(path)
+				local used_lines = {}
+
+				-- Collect all rows that already have notes in this buffer
+				for _, note in ipairs(existing_notes) do
+					if note.bufname == choice.bufname then
+						used_lines[note.row] = true
+					end
+				end
+
+				-- find an available line
+				local new_row = nil
+				for i = last_line - 1, 0, -1 do
+					if not used_lines[i] then
+						new_row = i
+						break
+					end
+				end
+
+				if new_row ~= nil then
+					-- Found available line, move note there
+					vim.notify(
+						"Line "
+							.. (target_row + 1)
+							.. " doesn't exist; moving note to last available line: "
+							.. (new_row + 1),
+						vim.log.levels.INFO
+					)
+
+					-- Update note position in storage
+					for i, note in ipairs(existing_notes) do
+						if note.bufname == choice.bufname and note.row == target_row then
+							existing_notes[i].row = new_row
+							utils.write_json(path, existing_notes)
+							break
+						end
+					end
+
+					-- Update in global notes
+					local global_path = utils.get_global_path()
+					local global_notes = utils.read_json(global_path)
+					for i, note in ipairs(global_notes) do
+						if note.bufname == choice.bufname and note.row == target_row then
+							global_notes[i].row = new_row
+							utils.write_json(global_path, global_notes)
+							break
+						end
+					end
+
+					-- Move cursor to new position
+					local ok, err = pcall(vim.api.nvim_win_set_cursor, 0, { new_row + 1, 0 })
+					if not ok then
+						vim.notify("Failed to set cursor: " .. err, vim.log.levels.WARN)
+					end
+
+					-- Apply extmark at the new position
+					local display_text = get_note_headline(choice)
+					vim.api.nvim_buf_set_extmark(bufnr, ns, new_row, 0, {
+						virt_text = { { config.opts.note_prefix .. display_text, "Comment" } },
+						virt_text_pos = "eol",
+					})
+				else
+					vim.notify("No available space for ghost note. Copied note to clipboard", vim.log.levels.INFO)
+					vim.fn.setreg("+", choice.text)
+				end
+			end
 		end
 	end)
 end
@@ -153,28 +231,109 @@ function M.find_notes_global()
 		if choice and choice.bufname then
 			local cur_buf = vim.api.nvim_get_current_buf()
 			local cur_name = vim.api.nvim_buf_get_name(cur_buf)
-			if cur_name == choice.bufname then
-				-- if already in buffer: move cursor, no reload
-				vim.api.nvim_win_set_cursor(0, { (choice.row or 0) + 1, 0 })
-			else
-				-- switch to buffer if loaded, otherwise edit
+
+			-- Open the buffer if needed
+			if cur_name ~= choice.bufname then
 				local bufnr = vim.fn.bufnr(choice.bufname, false)
 				if bufnr ~= -1 then
 					vim.cmd("buffer " .. bufnr)
 				else
 					vim.cmd("edit " .. vim.fn.fnameescape(choice.bufname))
 				end
-				vim.api.nvim_win_set_cursor(0, { (choice.row or 0) + 1, 0 })
 			end
 
-			-- manually apply ghost note extmark after jump
+			-- in the target buffer
 			local bufnr = vim.api.nvim_get_current_buf()
-			vim.api.nvim_buf_clear_namespace(bufnr, ns, choice.row, choice.row + 1)
-            local display_text = get_note_headline(choice)
-            vim.api.nvim_buf_set_extmark(bufnr, ns, choice.row, 0, {
-                virt_text = { { config.opts.note_prefix .. display_text, "Comment" } },
-                virt_text_pos = "eol",
-            })
+			local last_line = vim.api.nvim_buf_line_count(bufnr)
+			local target_row = (choice.row or 0)
+
+			-- clear the old extmark
+			vim.api.nvim_buf_clear_namespace(bufnr, ns, target_row, target_row + 1)
+
+			if target_row >= 0 and target_row < last_line then
+				-- Original position exists: move cursor there
+				local ok, err = pcall(vim.api.nvim_win_set_cursor, 0, { target_row + 1, 0 })
+				if not ok then
+					vim.notify("Failed to set cursor: " .. err, vim.log.levels.WARN)
+				end
+
+				-- Apply extmark at the original position
+				local display_text = get_note_headline(choice)
+				vim.api.nvim_buf_set_extmark(bufnr, ns, target_row, 0, {
+					virt_text = { { config.opts.note_prefix .. display_text, "Comment" } },
+					virt_text_pos = "eol",
+				})
+			else
+				-- Try to find a new position
+				local existing_notes = utils.read_json(global_path)
+				local used_lines = {}
+
+				-- Collect all rows that already have notes in this buffer
+				for _, note in ipairs(existing_notes) do
+					if note.bufname == choice.bufname then
+						used_lines[note.row] = true
+					end
+				end
+
+				-- find an available line
+				local new_row = nil
+				for i = last_line - 1, 0, -1 do
+					if not used_lines[i] then
+						new_row = i
+						break
+					end
+				end
+
+				if new_row ~= nil then
+					-- Found available line, move note there
+					vim.notify(
+						"Line "
+							.. (target_row + 1)
+							.. " doesn't exist; moving note to last available line: "
+							.. (new_row + 1),
+						vim.log.levels.INFO
+					)
+
+					-- Update note position in storage
+					local git_root = utils.get_git_root()
+					if git_root then
+						local path = git_root .. "/.ghostnotes.json"
+						local project_notes = utils.read_json(path)
+						for i, note in ipairs(project_notes) do
+							if note.bufname == choice.bufname and note.row == target_row then
+								project_notes[i].row = new_row
+								utils.write_json(path, project_notes)
+								break
+							end
+						end
+					end
+
+					-- Update in global notes
+					for i, note in ipairs(existing_notes) do
+						if note.bufname == choice.bufname and note.row == target_row then
+							existing_notes[i].row = new_row
+							utils.write_json(global_path, existing_notes)
+							break
+						end
+					end
+
+					-- Move cursor to new position
+					local ok, err = pcall(vim.api.nvim_win_set_cursor, 0, { new_row + 1, 0 })
+					if not ok then
+						vim.notify("Failed to set cursor: " .. err, vim.log.levels.WARN)
+					end
+
+					-- Apply extmark at the new position
+					local display_text = get_note_headline(choice)
+					vim.api.nvim_buf_set_extmark(bufnr, ns, new_row, 0, {
+						virt_text = { { config.opts.note_prefix .. display_text, "Comment" } },
+						virt_text_pos = "eol",
+					})
+				else
+					vim.notify("No available space for ghost note. Copied note to clipboard", vim.log.levels.INFO)
+					vim.fn.setreg("+", choice.text)
+				end
+			end
 		end
 	end)
 end
@@ -243,15 +402,15 @@ function M.edit_or_view_note()
 		end
 	end
 
-    local lines = {}
-    if note then
-        for line in note.text:gmatch("([^\n]*)\n?") do
-            table.insert(lines, line)
-        end
-    end
-    if #lines == 0 then
-        lines = { "" }
-    end
+	local lines = {}
+	if note then
+		for line in note.text:gmatch("([^\n]*)\n?") do
+			table.insert(lines, line)
+		end
+	end
+	if #lines == 0 then
+		lines = { "" }
+	end
 
 	local float_buf = vim.api.nvim_create_buf(false, true)
 	vim.api.nvim_buf_set_lines(float_buf, 0, -1, false, lines)
@@ -272,11 +431,11 @@ function M.edit_or_view_note()
 		col = math.floor((editor_width - float_width) / 2),
 		style = "minimal",
 		border = { "╭", "─", "╮", "│", "╯", "─", "╰", "│" },
-        title = " ⏎ press q to save/exit   ┃   1st line: headline   ┃   2nd+: body ",
+		title = " ⏎ press q to save/exit   ┃   1st line: headline   ┃   2nd+: body ",
 		title_pos = "center",
 	})
 
-    vim.api.nvim_win_set_option(win, "wrap", true)
+	vim.api.nvim_win_set_option(win, "wrap", true)
 
 	local function upsert_note(text)
 		-- text is a table of lines from the buffer, join with newlines
