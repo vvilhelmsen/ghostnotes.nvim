@@ -5,7 +5,6 @@ local get_note_headline = require("ghostnotes.note_operations.getters").get_note
 
 local M = {}
 
--- Handle note selection
 local function handle_note_selection(note)
 	if not note or not note.bufname then
 		return
@@ -105,9 +104,7 @@ function M.find_notes_global()
 		return
 	end
 
-	-- Check if Snacks is available
 	if Snacks and Snacks.picker then
-		-- Use Snacks for the picker
 		local picker_items = {}
 		for _, note in ipairs(all_notes) do
 			local display_text = vim.fn.fnamemodify(note.bufname, ":t")
@@ -164,7 +161,6 @@ function M.find_notes_global()
 			local action_state = require("telescope.actions.state")
 			local previewers = require("telescope.previewers")
 
-			-- Create a custom previewer for notes
 			local note_previewer = previewers.new_buffer_previewer({
 				title = "Note Preview",
 				define_preview = function(self, entry, status)
@@ -172,7 +168,6 @@ function M.find_notes_global()
 					-- Clear the buffer
 					vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false, {})
 
-					-- Insert the note text as lines
 					local lines = {}
 					for line in note.text:gmatch("([^\n]*)\n?") do
 						table.insert(lines, line)
@@ -184,12 +179,10 @@ function M.find_notes_global()
 						vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false, { "(Empty note)" })
 					end
 
-					-- Set markdown syntax highlighting
 					vim.api.nvim_buf_set_option(self.state.bufnr, "filetype", "markdown")
 				end,
 			})
 
-			-- Create the picker
 			pickers
 				.new({}, {
 					prompt_title = "Ghost Notes (Global)",
@@ -219,7 +212,7 @@ function M.find_notes_global()
 				})
 				:find()
 		else
-			-- Fall back to vim.ui.select if Telescope isn't available
+		    -- Fallback to vim.ui.select
 			vim.ui.select(all_notes, {
 				prompt = "Ghost Notes (Global)",
 				format_item = function(item)
