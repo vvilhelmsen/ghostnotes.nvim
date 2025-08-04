@@ -20,7 +20,7 @@ local function handle_note_selection(note)
 	bufnr = vim.api.nvim_get_current_buf()
 	local last_line = vim.api.nvim_buf_line_count(bufnr)
 	local target_row = (note.row or 0)
-	local note_text = note.text or note.note_text
+    local note_text = note.note_text or note.text
 
 	vim.api.nvim_buf_clear_namespace(bufnr, ns, target_row, target_row + 1)
 
@@ -34,6 +34,7 @@ local function handle_note_selection(note)
 			virt_text = { { config.opts.note_prefix .. display_text, "Comment" } },
 			virt_text_pos = "eol",
 		})
+
 	else
 		-- Handle the case where the line doesn't exist anymore
 		local global_path = utils.get_global_path()

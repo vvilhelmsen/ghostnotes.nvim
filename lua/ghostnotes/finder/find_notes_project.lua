@@ -11,7 +11,7 @@ local function handle_note_selection(note, project_path)
 	end
 
 	local path = project_path or (utils.get_git_root() .. "/.ghostnotes.json")
-	local note_text = note.text or note.note_text
+    local note_text = note.note_text or note.text
 
 	local bufnr = vim.fn.bufnr(note.bufname, false)
 	if bufnr ~= -1 then
