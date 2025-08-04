@@ -1,6 +1,7 @@
 # 👻 ghostnotes.nvim
 
 Add simple, persistent virtual notes to any line in your code. Markdown supported.
+(Snacks or Telescope is needed for preview to work)
 
 Contributions are welcome!
 
@@ -11,7 +12,6 @@ Contributions are welcome!
 - [Install](#install)
 - [Default Keymaps](#default-keymaps)
 - [How it works](#how-it-works)
-- [License](#mit-license)
 
 ---
 
@@ -19,11 +19,11 @@ Contributions are welcome!
 
 ### Adding a note
 
-<img width="1770" height="1054" alt="image" src="https://github.com/user-attachments/assets/c7d70b15-3e4d-4875-8da0-b4c02dedc3fc" />
+<img width="1162" height="967" alt="image" src="https://github.com/user-attachments/assets/732aef70-3b92-493f-8871-e7380792f31b" />
 
 ### Finding notes
 
-<img width="912" height="147" alt="image" src="https://github.com/user-attachments/assets/bb684922-719e-4371-8f24-97dc1d40b31b" />
+<img width="1163" height="957" alt="image" src="https://github.com/user-attachments/assets/7126a2fc-4648-4d20-90f9-622d55f82ccb" />
 
 ---
 ## Install
