@@ -2,6 +2,8 @@ local utils = require("ghostnotes.utils")
 local config = require("ghostnotes.config")
 local ns = vim.api.nvim_create_namespace(config.opts.namespace)
 local get_note_headline = require("ghostnotes.note_operations.getters").get_note_headline
+
+
 local M = {}
 
 function M.find_notes_global()
@@ -12,11 +14,16 @@ function M.find_notes_global()
 		return
 	end
 
+	local notes_with_file = vim.tbl_map(function(note)
+		note.file = get_note_headline(note)
+		return note
+	end, all_notes)
+
 	Snacks.picker.pick({
-		items = all_notes,
-		prompt = "All Ghost Notes (Global)",
+		items = notes_with_file,
+		prompt = "> ",
 		format_item = function(item)
-			local name = vim.fn.fnamemodify(item.bufname, ":t")
+			local name = item.file
 			local headline = get_note_headline(item)
 			return string.format("%s:%d → %s", name, (item.row or 0) + 1, headline)
 		end,
