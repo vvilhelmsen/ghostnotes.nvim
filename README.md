@@ -40,7 +40,11 @@ lazy.nvim:
 return {
   "vvilhelmsen/ghostnotes.nvim",
   config = function()
-    require("ghostnotes").config()
+    require("ghostnotes").setup({
+      -- Optional overrides, for example::
+      -- note_prefix = "📝 ",
+      -- path_options = ":p",
+    })
   end,
 }
 ````
