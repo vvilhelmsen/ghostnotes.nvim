@@ -9,6 +9,17 @@ M.opts = {
 	},
 	namespace = "ghostnotes",
     note_prefix = "👻 ",
+
+    -- Some modifiers:
+    -- :p   - Absolute path
+    -- :.   - Relative to current directory
+    -- :~   - Relative to home directory
+    -- :h   - Head (directory portion, /foo/bar)
+    -- :t   - Tail (filename only, file.txt) - default 
+    -- :r   - Root (file without extension, file)
+    -- :e   - Extension only (txt)
+    -- You can chain modifiers, e.g. ":t:r" (filename without extension)
+    path_format = ":t"
 }
 
 function M.setup(user_opts)
