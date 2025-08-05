@@ -1,6 +1,7 @@
 local utils = require("ghostnotes.utils")
 local config = require("ghostnotes.config")
 local ns = vim.api.nvim_create_namespace(config.opts.namespace)
+local path_format = config.opts.path_format or ":t"
 local get_note_headline = require("ghostnotes.note_operations.getters").get_note_headline
 local M = {}
 
@@ -124,7 +125,7 @@ function M.find_notes_project()
 	if Snacks and Snacks.picker then
 		local picker_items = {}
 		for _, note in ipairs(project_notes) do
-			local display_text = vim.fn.fnamemodify(note.bufname, ":t")
+			local display_text = vim.fn.fnamemodify(note.bufname, path_format)
 				.. ":"
 				.. ((note.row or 0) + 1)
 				.. " → "
@@ -171,17 +172,79 @@ function M.find_notes_project()
 			end,
 		})
 	else
-		-- Fallback to vim.ui.select
-		vim.ui.select(project_notes, {
-			prompt = "Project Ghost Notes",
-			format_item = function(item)
-				local name = vim.fn.fnamemodify(item.bufname, ":t")
-				local headline = get_note_headline(item)
-				return string.format("%s:%d → %s", name, (item.row or 0) + 1, headline)
-			end,
-		}, function(choice)
-			handle_note_selection(choice, path)
-		end)
+		-- Try to use Telescope if available
+		local status_ok, telescope = pcall(require, "telescope")
+		if status_ok then
+			local pickers = require("telescope.pickers")
+			local finders = require("telescope.finders")
+			local conf = require("telescope.config").values
+			local actions = require("telescope.actions")
+			local action_state = require("telescope.actions.state")
+			local previewers = require("telescope.previewers")
+
+			local note_previewer = previewers.new_buffer_previewer({
+				title = "Note Preview",
+				define_preview = function(self, entry, status)
+					local note = entry.value
+					-- Clear the buffer
+					vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false, {})
+
+					local lines = {}
+					for line in note.text:gmatch("([^\n]*)\n?") do
+						table.insert(lines, line)
+					end
+
+					if #lines > 0 then
+						vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false, lines)
+					else
+						vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false, { "(Empty note)" })
+					end
+
+					vim.api.nvim_buf_set_option(self.state.bufnr, "filetype", "markdown")
+				end,
+			})
+
+			pickers
+				.new({}, {
+					prompt_title = "Ghost Notes (Project)",
+					finder = finders.new_table({
+						results = project_notes,
+						entry_maker = function(note)
+							local name = vim.fn.fnamemodify(note.bufname, ":t")
+							local headline = get_note_headline(note)
+							local display = name .. ":" .. ((note.row or 0) + 1) .. " → " .. headline
+							return {
+								value = note,
+								display = display,
+								ordinal = display,
+							}
+						end,
+					}),
+					sorter = conf.generic_sorter({}),
+					previewer = note_previewer,
+					attach_mappings = function(prompt_bufnr, map)
+						actions.select_default:replace(function()
+							local selection = action_state.get_selected_entry()
+							actions.close(prompt_bufnr)
+							handle_note_selection(selection.value, path)
+						end)
+						return true
+					end,
+				})
+				:find()
+		else
+			-- Fallback to vim.ui.select
+			vim.ui.select(project_notes, {
+				prompt = "Project Ghost Notes",
+				format_item = function(item)
+					local name = vim.fn.fnamemodify(item.bufname, ":t")
+					local headline = get_note_headline(item)
+					return string.format("%s:%d → %s", name, (item.row or 0) + 1, headline)
+				end,
+			}, function(choice)
+				handle_note_selection(choice, path)
+			end)
+		end
 	end
 end
 
