@@ -1,6 +1,7 @@
 local utils = require("ghostnotes.utils")
 local config = require("ghostnotes.config")
 local ns = vim.api.nvim_create_namespace(config.opts.namespace)
+local path_format = config.opts.path_format or ":t"
 local get_note_headline = require("ghostnotes.note_operations.getters").get_note_headline
 
 local M = {}
@@ -108,7 +109,7 @@ function M.find_notes_global()
 	if Snacks and Snacks.picker then
 		local picker_items = {}
 		for _, note in ipairs(all_notes) do
-			local display_text = vim.fn.fnamemodify(note.bufname, ":t")
+			local display_text = vim.fn.fnamemodify(note.bufname, path_format)
 				.. ":"
 				.. ((note.row or 0) + 1)
 				.. " → "
