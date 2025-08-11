@@ -41,7 +41,7 @@ return {
   "vvilhelmsen/ghostnotes.nvim",
   config = function()
     require("ghostnotes").setup({
-      -- Optional overrides, for example::
+      -- Optional overrides, for example:
       -- note_prefix = "📝 ",
       -- path_options = ":p",
     })
