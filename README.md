@@ -58,6 +58,8 @@ return {
 | Clear line         | `<leader>gnc`  |
 | Find global        | `<leader>gnf`  |
 | Find in project    | `<leader>gnF`  |
+| Grep global        | `<leader>gng`  |
+| Grep in project    | `<leader>gnG`  |
 | Yank note          | `<leader>gny`  |
 
 ---
