@@ -45,6 +45,15 @@ function M.edit_or_view_note()
 	vim.api.nvim_buf_set_option(float_buf, "bufhidden", "wipe")
 	vim.api.nvim_buf_set_option(float_buf, "filetype", "markdown")
 
+	-- Implements normal :w / :wq / :x/ZZ etc
+	vim.api.nvim_buf_set_option(float_buf, "buftype", "acwrite")
+	vim.api.nvim_buf_set_option(float_buf, "swapfile", false)
+	pcall(
+		vim.api.nvim_buf_set_name,
+		float_buf,
+		("ghostnote://%s:%d"):format(vim.fn.fnamemodify(bufname, ":t"), row + 1)
+	)
+
 	local editor_width = vim.o.columns
 	local editor_height = vim.o.lines
 
@@ -59,7 +68,7 @@ function M.edit_or_view_note()
 		col = math.floor((editor_width - float_width) / 2),
 		style = "minimal",
 		border = { "╭", "─", "╮", "│", "╯", "─", "╰", "│" },
-		title = " ⏎ press q to save/exit   ┃   1st line: headline   ┃   2nd+: body ",
+        title = " ⏎ normal vim :w/:q save/exit ┃   1st line: headline   ┃   2nd+: body ",
 		title_pos = "center",
 	})
 
@@ -120,33 +129,22 @@ function M.edit_or_view_note()
 		vim.notify("Deleted ghost note", vim.log.levels.INFO)
 	end
 
-	local function save_and_close()
-		local new_lines = vim.api.nvim_buf_get_lines(float_buf, 0, -1, false)
-		local new_text = table.concat(new_lines, "\n")
-		if new_text:match("^%s*$") then
-			if note then
-				delete_note()
-			end
-		else
-			upsert_note(new_lines)
-		end
-		vim.api.nvim_win_close(win, true)
-	end
-
-	vim.api.nvim_buf_set_keymap(
-		float_buf,
-		"n",
-		"q",
-		"<cmd>lua vim.api.nvim_win_close(" .. win .. ", true)<CR>",
-		{ nowait = true, noremap = true, silent = true }
-	)
-	-- prevents leaving with escape
-	vim.api.nvim_create_autocmd({ "BufLeave" }, {
+	-- Handles :w, :wq, :x, ZZ via BufWriteCmd
+	vim.api.nvim_create_autocmd("BufWriteCmd", {
 		buffer = float_buf,
-		once = true,
 		callback = function()
-			save_and_close()
+			local new_lines = vim.api.nvim_buf_get_lines(float_buf, 0, -1, false)
+			local new_text = table.concat(new_lines, "\n")
+			if new_text:match("^%s*$") then
+				if note then
+					delete_note()
+				end
+			else
+				upsert_note(new_lines)
+			end
+			pcall(vim.api.nvim_buf_set_option, float_buf, "modified", false)
 		end,
+		desc = "GhostNotes save",
 	})
 
 	vim.cmd("stopinsert")
