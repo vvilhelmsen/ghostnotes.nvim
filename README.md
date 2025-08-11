@@ -24,12 +24,12 @@ Notes are added either as a simple inline virtual comment (if no body is supplie
 
 ### Finding notes
 
-Ghost notes you have made can be found by using `leader + gnf` to find ALL your ghost notes, or `leader + gnF` to find ghost notes in your current project.
+Ghost notes you have made can be found by using `leader + gnf` to find ALL your ghost notes, or `leader + gnF` to find ghost notes in your current project. You can also grep for content inside notes by doing `leader + gng` or `leader + gnG`.
 If you have telescope or snacks installed you will be able to preview the notes as well - see below:
 
 <img width="1163" height="957" alt="image" src="https://github.com/user-attachments/assets/7126a2fc-4648-4d20-90f9-622d55f82ccb" />
 
-If neither telescope nor snacks is installed you will get a simple picker that lets you see the headline and also moves you to the location of the note when picked.
+If neither telescope nor snacks is installed you will get a simple picker that lets you see the headline and also moves you to the location of the note when picked. Grepping will not work without telescope + snacks.
 
 ---
 ## Install
