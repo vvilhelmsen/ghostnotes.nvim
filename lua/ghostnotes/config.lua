@@ -4,11 +4,13 @@ M.opts = {
 		clear_line = "<leader>gnc",
 		find_global = "<leader>gnf",
 		find_local = "<leader>gnF",
-        yank_line = "<leader>gny",
-        edit_or_view_note = "<leader>gne",
+		yank_line = "<leader>gny",
+		edit_or_view_note = "<leader>gne",
+		grep_global = "<leader>gng",
+		grep_local = "<leader>gnG",
 	},
 	namespace = "ghostnotes",
-    note_prefix = "👻 ",
+	note_prefix = "👻 ",
 
     -- Some modifiers:
     -- :p   - Absolute path
@@ -19,7 +21,7 @@ M.opts = {
     -- :r   - Root (file without extension, file)
     -- :e   - Extension only (txt)
     -- You can chain modifiers, e.g. ":t:r" (filename without extension)
-    path_format = ":t"
+	path_format = ":t",
 }
 
 function M.setup(user_opts)
@@ -27,4 +29,3 @@ function M.setup(user_opts)
 end
 
 return M
-
