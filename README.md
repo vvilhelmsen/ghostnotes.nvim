@@ -4,7 +4,9 @@ Add simple, persistent virtual notes to any line in your code. Markdown supporte
 
 (Snacks or Telescope is needed for preview to work)
 
-**Contributions are welcome!**
+Want something added or changed? **Create an issue!**
+
+**Contributions are welcome :)**
 
 ---
 ## Table of Contents

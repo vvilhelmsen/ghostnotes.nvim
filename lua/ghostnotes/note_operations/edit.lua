@@ -54,6 +54,8 @@ function M.edit_or_view_note()
 		("ghostnote://%s:%d"):format(vim.fn.fnamemodify(bufname, ":t"), row + 1)
 	)
 
+	pcall(vim.api.nvim_buf_set_option, float_buf, "modified", false)
+
 	local editor_width = vim.o.columns
 	local editor_height = vim.o.lines
 
@@ -68,7 +70,7 @@ function M.edit_or_view_note()
 		col = math.floor((editor_width - float_width) / 2),
 		style = "minimal",
 		border = { "╭", "─", "╮", "│", "╯", "─", "╰", "│" },
-        title = " ⏎ normal vim :w/:q save/exit ┃   1st line: headline   ┃   2nd+: body ",
+		title = " ⏎ :w/:q save/exit ┃ L1: headline ┃ L2+: body ",
 		title_pos = "center",
 	})
 
