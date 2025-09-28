@@ -39,13 +39,22 @@ lazy.nvim:
 
 ```lua
 {
-    "vvilhelmsen/ghostnotes.nvim",
-    opts = {
-        -- Optional overrides, for example:
-        -- note_prefix = "📝 ",
-        -- path_options = ":p",
-    }
-},
+  "vvilhelmsen/ghostnotes.nvim",
+  -- Optional overrides, for example:
+  opts = {
+    keymaps = {
+      clear_line        = "<leader>gnc",
+      find_global       = "<leader>gnf",
+      find_local        = "<leader>gnF",
+      yank_line         = "<leader>gny",
+      edit_or_view_note = "<leader>gne",
+      grep_global       = "<leader>gng",
+      grep_local        = "<leader>gnG",
+    },
+    note_prefix = "📝 ",
+    path_format = ":~:h:t",
+  }
+}
 ````
 ---
 
