@@ -39,7 +39,7 @@ lazy.nvim:
 
 ```lua
 {
-    dir = "~/Projects/ghostnotes.nvim",
+    "vvilhelmsen/ghostnotes.nvim",
     opts = {
         -- Optional overrides, for example:
         -- note_prefix = "📝 ",
