@@ -38,16 +38,14 @@ If neither telescope nor snacks is installed you will get a simple picker that l
 lazy.nvim:
 
 ```lua
-return {
-  "vvilhelmsen/ghostnotes.nvim",
-  config = function()
-    require("ghostnotes").setup({
-      -- Optional overrides, for example:
-      -- note_prefix = "📝 ",
-      -- path_options = ":p",
-    })
-  end,
-}
+{
+    dir = "~/Projects/ghostnotes.nvim",
+    opts = {
+        -- Optional overrides, for example:
+        -- note_prefix = "📝 ",
+        -- path_options = ":p",
+    }
+},
 ````
 ---
 
