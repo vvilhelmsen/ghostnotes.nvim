@@ -89,7 +89,7 @@ function M.open_picker(opts)
         end
         if #lines == 0 then lines = { "(Empty note)" } end
         vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false, lines)
-        vim.api.nvim_buf_set_option(self.state.bufnr, "filetype", "markdown")
+        vim.api.nvim_set_option_value("filetype", "markdown", { scope = "local", buf = self.state.bufnr })
       end,
     })
 
