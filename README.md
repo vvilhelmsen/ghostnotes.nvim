@@ -43,13 +43,7 @@ lazy.nvim:
   -- Optional overrides, for example:
   opts = {
     keymaps = {
-      clear_line        = "<leader>gnc",
-      find_global       = "<leader>gnf",
-      find_local        = "<leader>gnF",
-      yank_line         = "<leader>gny",
-      edit_or_view_note = "<leader>gne",
-      grep_global       = "<leader>gng",
-      grep_local        = "<leader>gnG",
+      clear_line = "<leader>gnd",
     },
     note_prefix = "📝 ",
     path_format = ":~:h:t",
@@ -60,15 +54,15 @@ lazy.nvim:
 
 ## Default Keymaps
 
-| Action             | Default         |
-| ------------------ | ---------------|
-| Add / View / Edit  | `<leader>gne`  |
-| Clear note         | `<leader>gnc`  |
-| Find global        | `<leader>gnf`  |
-| Find in project    | `<leader>gnF`  |
-| Grep global        | `<leader>gng`  |
-| Grep in project    | `<leader>gnG`  |
-| Yank note          | `<leader>gny`  |
+| Option name         | Default       |
+| ------------------- | ------------- |
+| `edit_or_view_note` | `<leader>gne` |
+| `clear_line`        | `<leader>gnc` |
+| `find_global`       | `<leader>gnf` |
+| `find_local`        | `<leader>gnF` |
+| `grep_global`       | `<leader>gng` |
+| `grep_local`        | `<leader>gnG` |
+| `yank_line`         | `<leader>gny` |
 
 ---
 
