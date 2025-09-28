@@ -3,6 +3,7 @@ local config = require("ghostnotes.config")
 local ns = vim.api.nvim_create_namespace(config.opts.namespace)
 local path_format = config.opts.path_format or ":t"
 local get_note_headline = require("ghostnotes.note_operations.getters").get_note_headline
+local build_items = require("ghostnotes.finder.common").build_items
 
 local M = {}
 
@@ -101,32 +102,15 @@ end
 function M.find_notes_global()
 	local global_path = utils.get_global_path()
 	local all_notes = utils.read_json(global_path)
+	local items = build_items(all_notes, path_format)
 	if vim.tbl_isempty(all_notes) then
 		vim.notify("No ghost notes in global file", vim.log.levels.INFO)
 		return
 	end
 
 	if Snacks and Snacks.picker then
-		local picker_items = {}
-		for _, note in ipairs(all_notes) do
-			local display_text = vim.fn.fnamemodify(note.bufname, path_format)
-				.. ":"
-				.. ((note.row or 0) + 1)
-				.. " → "
-				.. get_note_headline(note)
-
-			table.insert(picker_items, {
-				bufname = note.bufname,
-				row = note.row,
-				note_text = note.text,
-				timestamp = note.timestamp,
-				file = note.bufname,
-				text = display_text,
-			})
-		end
-
 		Snacks.picker.pick({
-			items = picker_items,
+			items = items,
 			prompt = "> ",
 			title = "Ghost Notes (Global)",
 			format = "text",
@@ -161,45 +145,22 @@ function M.find_notes_global()
 			local conf = require("telescope.config").values
 			local actions = require("telescope.actions")
 			local action_state = require("telescope.actions.state")
-			local previewers = require("telescope.previewers")
 
-			local note_previewer = previewers.new_buffer_previewer({
-				title = "Note Preview",
-				define_preview = function(self, entry, status)
-					local note = entry.value
-					-- Clear the buffer
-					vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false, {})
-
-					local lines = {}
-					for line in note.text:gmatch("([^\n]*)\n?") do
-						table.insert(lines, line)
-					end
-
-					if #lines > 0 then
-						vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false, lines)
-					else
-						vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false, { "(Empty note)" })
-					end
-
-          vim.api.nvim_set_option_value("filetype", "markdown", { scope = "local", buf = self.state.bufnr })
-				end,
-			})
+      local make_display = require("ghostnotes.finder.common").tel_create_displayer(items)
+      local note_previewer = require("ghostnotes.finder.common").tel_previewer()
 
 			pickers
 				.new({}, {
 					prompt_title = "Ghost Notes (Global)",
 					finder = finders.new_table({
-						results = all_notes,
-						entry_maker = function(note)
-							local name = vim.fn.fnamemodify(note.bufname, ":t")
-							local headline = get_note_headline(note)
-							local display = name .. ":" .. ((note.row or 0) + 1) .. " → " .. headline
-							return {
-								value = note,
-								display = display,
-								ordinal = display,
-							}
-						end,
+						results = items,
+            entry_maker = function(it)
+              return {
+                value   = it,
+                display = make_display,
+                ordinal = it.display
+              }
+        end,
 					}),
 					sorter = conf.generic_sorter({}),
 					previewer = note_previewer,

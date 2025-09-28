@@ -1,33 +1,7 @@
-local config   = require("ghostnotes.config")
-local get_head = require("ghostnotes.note_operations.getters").get_note_headline
+local config      = require("ghostnotes.config").opts
+local build_items = require("ghostnotes.finder.common").build_items
 
 local M = {}
-
-local function oneline(s)
-  s = (s or ""):gsub("%s+", " ")
-  if #s > 200 then s = s:sub(1, 200) .. "…" end
-  return s
-end
-
-local function build_items(notes, path_format)
-  local out = {}
-  for _, n in ipairs(notes or {}) do
-    local display = vim.fn.fnamemodify(n.bufname, path_format)
-      .. ":" .. ((n.row or 0) + 1)
-      .. " → " .. get_head(n)
-    local body = oneline(n.text)
-    table.insert(out, {
-      bufname   = n.bufname,
-      row       = n.row,
-      note_text = n.text,
-      timestamp = n.timestamp,
-      -- right now grepping only works if we display the body. Looks ugly but works
-      text      = body ~= "" and (display .. " — " .. body) or display,
-      file      = n.bufname,
-    })
-  end
-  return out
-end
 
 function M.open_picker(opts)
   local title       = opts.title
@@ -77,21 +51,9 @@ function M.open_picker(opts)
     local conf       = require("telescope.config").values
     local actions    = require("telescope.actions")
     local action_st  = require("telescope.actions.state")
-    local previewers = require("telescope.previewers")
 
-    local prev = previewers.new_buffer_previewer({
-      title = "Note Preview",
-      define_preview = function(self, entry, _)
-        local note = entry.value
-        local lines = {}
-        for line in (note.note_text or ""):gmatch("([^\n]*)\n?") do
-          table.insert(lines, line)
-        end
-        if #lines == 0 then lines = { "(Empty note)" } end
-        vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false, lines)
-        vim.api.nvim_set_option_value("filetype", "markdown", { scope = "local", buf = self.state.bufnr })
-      end,
-    })
+    local make_display = require("ghostnotes.finder.common").tel_create_displayer(items)
+    local prev = require("ghostnotes.finder.common").tel_previewer()
 
     pickers.new({}, {
       prompt_title = title,
@@ -100,7 +62,7 @@ function M.open_picker(opts)
         entry_maker = function(it)
           return {
             value   = it,
-            display = it.text,
+            display = make_display,
             ordinal = (it.text or "") .. "\n" .. (it.note_text or ""),
           }
         end,
