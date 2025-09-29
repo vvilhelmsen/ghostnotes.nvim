@@ -11,6 +11,18 @@ M.opts = {
 	},
 	namespace = "ghostnotes",
 	note_prefix = "👻 ",
+  picker = {
+    highlighting = {
+      file = "Normal",
+      row = "lineNr",
+      head = "String",
+    },
+    boundaries = {
+      file = { min = 5, max = 25 },
+      row = { min = 0, max = nil },
+    },
+    separator = " "
+  },
 
     -- Some modifiers:
     -- :p   - Absolute path
