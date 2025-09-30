@@ -24,7 +24,10 @@ function M.open_picker(opts)
       confirm = function(picker, item)
         if not item then return end
         picker:close()
-        on_confirm(item)
+        local normalized = vim.tbl_extend("force", {}, item, {
+          row = math.max((item.row or 1) - 1, 0),
+        })
+        on_confirm(normalized)
       end,
       preview = function(ctx)
         ctx.preview:reset()
@@ -37,7 +40,8 @@ function M.open_picker(opts)
         if #lines == 0 then lines = { "(Empty note)" } end
         ctx.preview:set_lines(lines)
         local name = vim.fn.fnamemodify(ctx.item.bufname, ":t")
-        ctx.preview:set_title(string.format("%s (line %d)", name, (ctx.item.row or 0) + 1))
+        -- items.row 1-based for display
+        ctx.preview:set_title(string.format("%s (line %d)", name, (ctx.item.row or 1)))
         ctx.preview:highlight({ ft = "markdown" })
       end,
     })
