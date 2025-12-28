@@ -5,10 +5,12 @@ M.opts = {
 		find_global = "<leader>gnf",
 		find_local = "<leader>gnF",
 		yank_line = "<leader>gny",
+		paste_note = "<leader>gnp",
 		edit_or_view_note = "<leader>gne",
 		grep_global = "<leader>gng",
 		grep_local = "<leader>gnG",
 	},
+	autowrite = true,
 	namespace = "ghostnotes",
 	note_prefix = "👻 ",
   picker = {

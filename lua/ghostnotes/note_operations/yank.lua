@@ -32,8 +32,8 @@ function M.yank_note_in_line()
 	end
 
 	if note_text then
-		vim.fn.setreg("+", note_text)
-		vim.notify("Yanked ghost note", vim.log.levels.INFO)
+		vim.fn.setreg("g", note_text)
+		vim.notify("Yanked ghost note into register g", vim.log.levels.INFO)
 	else
 		vim.notify("No ghost note to yank", vim.log.levels.WARN)
 	end
