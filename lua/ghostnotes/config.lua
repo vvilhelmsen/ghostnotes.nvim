@@ -9,6 +9,7 @@ M.opts = {
 		grep_global = "<leader>gng",
 		grep_local = "<leader>gnG",
 	},
+	autowrite = true,
 	namespace = "ghostnotes",
 	note_prefix = "👻 ",
   picker = {

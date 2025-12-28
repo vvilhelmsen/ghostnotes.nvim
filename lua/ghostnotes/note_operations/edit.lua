@@ -62,6 +62,9 @@ function M.edit_or_view_note()
 	local float_width = math.floor(editor_width * 0.5)
 	local float_height = math.max(math.floor(editor_height * 0.75), #lines + 2)
 
+	local title_text = config.opts.autowrite and " q: save/exit ┃ L1: headline ┃ L2+: body "
+		or " ⏎ :w/:q save/exit ┃ L1: headline ┃ L2+: body "
+
 	local win = vim.api.nvim_open_win(float_buf, true, {
 		relative = "editor",
 		width = float_width,
@@ -70,7 +73,7 @@ function M.edit_or_view_note()
 		col = math.floor((editor_width - float_width) / 2),
 		style = "minimal",
 		border = { "╭", "─", "╮", "│", "╯", "─", "╰", "│" },
-		title = " ⏎ :w/:q save/exit ┃ L1: headline ┃ L2+: body ",
+		title = title_text,
 		title_pos = "center",
 	})
 
@@ -148,6 +151,25 @@ function M.edit_or_view_note()
 		end,
 		desc = "GhostNotes save",
 	})
+
+	if config.opts.autowrite then
+		vim.keymap.set("n", "q", function()
+			if vim.bo[float_buf].modified then
+				vim.cmd("write")
+			end
+			vim.cmd("close")
+		end, { buffer = float_buf, silent = true, desc = "Save (if modified) and close" })
+
+		vim.api.nvim_create_autocmd({ "BufLeave" }, {
+			buffer = float_buf,
+			callback = function()
+				if vim.bo[float_buf].modified then
+					vim.cmd("write")
+				end
+			end,
+			desc = "GhostNotes autosave on leave",
+		})
+	end
 
 	vim.cmd("stopinsert")
 end
