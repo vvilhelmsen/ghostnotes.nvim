@@ -13,6 +13,7 @@ Want something added or changed? **Create an issue!**
 
 - [Example](#example)
 - [Install](#install)
+- [Configuration](#configuration)
 - [Default Keymaps](#default-keymaps)
 
 ---
@@ -40,29 +41,57 @@ lazy.nvim:
 ```lua
 {
   "vvilhelmsen/ghostnotes.nvim",
-  -- Optional overrides, for example:
-  opts = {
-    keymaps = {
-      clear_line = "<leader>gnd",
-    },
-    note_prefix = "📝 ",
-    path_format = ":~:h:t",
-  }
+  -- Optional overrides
+  opts = {}
 }
-````
+```
+
+---
+
+## Configuration
+
+You can configure ghostnotes by passing options to the `setup` function or via `opts` in lazy.nvim.
+
+```lua
+opts = {
+  -- If true, pressing `q` in the note window will save and close (if modified),
+  -- or just close (if not modified).
+  -- If false, you must use `:w`, `:wq`, or `ZZ` to save.
+  autowrite = true,
+
+  keymaps = {
+    clear_line        = "<leader>gnc", -- Clears note and yanks it to register "g"
+    find_global       = "<leader>gnf",
+    find_local        = "<leader>gnF",
+    yank_line         = "<leader>gny", -- Yanks note to register "g"
+    paste_note        = "<leader>gnp", -- Creates a note from register "g"
+    edit_or_view_note = "<leader>gne",
+    grep_global       = "<leader>gng",
+    grep_local        = "<leader>gnG",
+  },
+  
+  note_prefix = "👻 ",
+  
+  -- Controls how file paths are displayed in pickers
+  -- :t = tail (filename only), :~ = relative to home, etc.
+  path_format = ":t",
+}
+```
+
 ---
 
 ## Default Keymaps
 
-| Option name         | Default       |
-| ------------------- | ------------- |
-| `edit_or_view_note` | `<leader>gne` |
-| `clear_line`        | `<leader>gnc` |
-| `find_global`       | `<leader>gnf` |
-| `find_local`        | `<leader>gnF` |
-| `grep_global`       | `<leader>gng` |
-| `grep_local`        | `<leader>gnG` |
-| `yank_line`         | `<leader>gny` |
+| Option name         | Default       | Description |
+| ------------------- | ------------- | ----------- |
+| `edit_or_view_note` | `<leader>gne` | Open note editor for current line |
+| `clear_line`        | `<leader>gnc` | Delete note on current line (also yanks to "g") |
+| `find_global`       | `<leader>gnf` | Find notes in all known files |
+| `find_local`        | `<leader>gnF` | Find notes in current git project |
+| `grep_global`       | `<leader>gng` | Live grep inside all notes |
+| `grep_local`        | `<leader>gnG` | Live grep inside project notes |
+| `yank_line`         | `<leader>gny` | Yank current note text to register "g" |
+| `paste_note`        | `<leader>gnp` | Create note from register "g" contents |
 
 ---
 
