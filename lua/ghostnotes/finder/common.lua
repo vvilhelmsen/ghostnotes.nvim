@@ -1,5 +1,6 @@
 local config        = require("ghostnotes.config").opts
 local get_head      = require("ghostnotes.note_operations.getters").get_note_headline
+local utils         = require("ghostnotes.utils")
 
 local M             = {}
 
@@ -14,7 +15,7 @@ end
 
 M.format_ghostnote = function(item, picker)
   return {
-    { item.file, "Directory" },
+    { item.source_file, "Directory" },
     { ":", "Comment" },
     { tostring(item.row), "LineNr" },
     { " → ", "Comment" },
@@ -25,24 +26,26 @@ end
 M.build_items = function(notes, path_format)
   local out = {}
   for _, n in ipairs(notes or {}) do
-    local file = vim.fn.fnamemodify(n.bufname, path_format)
+    local source_file = vim.fn.fnamemodify(n.bufname, path_format)
     local head = get_head(n)
     local row = (n.row or 0) + 1
-    local display = file .. ":" .. row .. " → " .. head
+    local display = source_file .. ":" .. row .. " → " .. head
     local body = oneline(n.text)
+    
+    -- Create preview markdown file for Snacks to render
+    local preview_file = utils.create_preview_file(n)
+    
     table.insert(out, {
-      bufname   = n.bufname,
-      row       = row,
-      note_text = n.text,
-      head      = head,
-      timestamp = n.timestamp,
+      bufname     = n.bufname,
+      row         = row,
+      note_text   = n.text,
+      head        = head,
+      timestamp   = n.timestamp,
+      source_file = source_file,  -- Keep original file for display
       -- right now grepping only works if we display the body. Looks ugly but works
-      text      = body ~= "" and (display .. " — " .. body) or display,
-      file      = file,
-      display   = display,
-      preview   = {
-        text = n.text or "",
-      }
+      text        = body ~= "" and (display .. " — " .. body) or display,
+      file        = preview_file,  -- Point to preview markdown file for Snacks
+      display     = display,
     })
   end
   return out
@@ -65,7 +68,7 @@ M.tel_create_displayer = function(items)
   local displayer = entry_display.create({
     separator = config.picker.separator,
     items = {
-      { width = calc_field_length("file", items, bo.file.min, bo.file.min) },
+      { width = calc_field_length("source_file", items, bo.file.min, bo.file.min) },
       { width = calc_field_length("row", items, bo.row.min, bo.row.max) },
       { remaining = true }
     }
@@ -74,13 +77,44 @@ M.tel_create_displayer = function(items)
   local function make_display(entry)
     local val = entry.value
     return displayer {
-      { val.file, hl.file },
+      { val.source_file, hl.file },
       { val.row,  hl.row },
       { val.head, hl.head },
     }
   end
 
   return make_display
+end
+
+-- Custom Snacks preview function that reads the preview .md file
+-- and applies treesitter markdown highlighting without triggering render-markdown
+M.snacks_preview = function(ctx)
+  local item = ctx.item
+  if not item or not item.file then
+    ctx.preview:notify("No preview available", "warn")
+    return
+  end
+
+  local path = item.file
+  local file = io.open(path, "r")
+  if not file then
+    ctx.preview:notify("Preview file not found", "warn")
+    return
+  end
+
+  local lines = {}
+  for line in file:lines() do
+    table.insert(lines, line)
+  end
+  file:close()
+
+  if #lines == 0 then
+    lines = { "(Empty note)" }
+  end
+
+  ctx.preview:reset()
+  ctx.preview:set_lines(lines)
+  pcall(vim.treesitter.start, ctx.buf, "markdown")
 end
 
 M.tel_previewer = function()

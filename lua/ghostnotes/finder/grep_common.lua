@@ -20,8 +20,8 @@ function M.open_picker(opts)
       title = title,
       prompt = "> ",
       items = items,
+			preview=require("ghostnotes.finder.common").snacks_preview,
       format = require("ghostnotes.finder.common").format_ghostnote,
-      preview = "preview",
       confirm = function(picker, item)
         if not item then return end
         picker:close()
