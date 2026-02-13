@@ -12,6 +12,16 @@ local function oneline(s)
   return s
 end
 
+M.format_ghostnote = function(item, picker)
+  return {
+    { item.file, "Directory" },
+    { ":", "Comment" },
+    { tostring(item.row), "LineNr" },
+    { " → ", "Comment" },
+    { item.head, "Normal" },
+  }
+end
+
 M.build_items = function(notes, path_format)
   local out = {}
   for _, n in ipairs(notes or {}) do
@@ -29,7 +39,10 @@ M.build_items = function(notes, path_format)
       -- right now grepping only works if we display the body. Looks ugly but works
       text      = body ~= "" and (display .. " — " .. body) or display,
       file      = file,
-      display   = display
+      display   = display,
+      preview   = {
+        text = n.text or "",
+      }
     })
   end
   return out
