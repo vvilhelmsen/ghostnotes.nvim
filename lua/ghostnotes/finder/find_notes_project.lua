@@ -131,7 +131,7 @@ function M.find_notes_project()
 			prompt = "> ",
 			title = "Ghost Notes (Project)",
 			format = require("ghostnotes.finder.common").format_ghostnote,
-			preview = "preview",
+			preview = require("ghostnotes.finder.common").snacks_preview,
 			confirm = function(picker, item)
 				if item then
 					picker:close()

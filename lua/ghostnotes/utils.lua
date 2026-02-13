@@ -26,4 +26,35 @@ function M.get_global_path()
   return dir .. "/ghostnotes.json"
 end
 
+function M.get_preview_dir()
+  local dir = vim.fn.stdpath("data") .. "/ghostnotes/previews"
+  vim.fn.mkdir(dir, "p")
+  return dir
+end
+
+-- Generate unique file names
+local function simple_hash(str)
+  local hash = 0
+  for i = 1, #str do
+    hash = (hash * 31 + string.byte(str, i)) % 2147483647
+  end
+  return string.format("%x", hash)
+end
+
+-- Creates or updates a preview markdown file for a note
+function M.create_preview_file(note)
+  local preview_dir = M.get_preview_dir()
+  
+  local unique_str = (note.bufname or "") .. ":" .. tostring(note.row or 0) .. ":" .. (note.timestamp or "")
+  local hash = simple_hash(unique_str)
+  local preview_path = preview_dir .. "/" .. hash .. ".md"
+  
+  -- Write note content to markdown file
+  local content = note.text or ""
+  local lines = vim.split(content, "\n", { plain = true })
+  vim.fn.writefile(lines, preview_path)
+  
+  return preview_path
+end
+
 return M
