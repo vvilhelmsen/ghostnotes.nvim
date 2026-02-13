@@ -20,7 +20,8 @@ function M.open_picker(opts)
       title = title,
       prompt = "> ",
       items = items,
-      format = "text",
+      format = require("ghostnotes.finder.common").format_ghostnote,
+      preview = "preview",
       confirm = function(picker, item)
         if not item then return end
         picker:close()
@@ -28,21 +29,6 @@ function M.open_picker(opts)
           row = math.max((item.row or 1) - 1, 0),
         })
         on_confirm(normalized)
-      end,
-      preview = function(ctx)
-        ctx.preview:reset()
-        local lines = {}
-        if ctx.item.note_text then
-          for line in ctx.item.note_text:gmatch("([^\n]*)\n?") do
-            table.insert(lines, line)
-          end
-        end
-        if #lines == 0 then lines = { "(Empty note)" } end
-        ctx.preview:set_lines(lines)
-        local name = vim.fn.fnamemodify(ctx.item.bufname, ":t")
-        -- items.row 1-based for display
-        ctx.preview:set_title(string.format("%s (line %d)", name, (ctx.item.row or 1)))
-        ctx.preview:highlight({ ft = "markdown" })
       end,
     })
     return
