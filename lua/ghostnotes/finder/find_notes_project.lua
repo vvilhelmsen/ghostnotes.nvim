@@ -130,30 +130,13 @@ function M.find_notes_project()
 			items = items,
 			prompt = "> ",
 			title = "Ghost Notes (Project)",
-			format = "text",
+			format = require("ghostnotes.finder.common").format_ghostnote,
+			preview = "preview",
 			confirm = function(picker, item)
 				if item then
 					picker:close()
 					handle_note_selection(item, path)
 				end
-			end,
-			preview = function(ctx)
-				ctx.preview:reset()
-
-				local lines = {}
-				if ctx.item.note_text then
-					for line in ctx.item.note_text:gmatch("([^\n]*)\n?") do
-						table.insert(lines, line)
-					end
-				end
-
-				ctx.preview:set_lines(lines)
-
-				-- title (filename and line number)
-				local name = vim.fn.fnamemodify(ctx.item.bufname, ":t")
-				ctx.preview:set_title(string.format("%s (line %d)", name, (ctx.item.row or 0) + 1))
-
-				ctx.preview:highlight({ ft = "markdown" })
 			end,
 		})
 	else
