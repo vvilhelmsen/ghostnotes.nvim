@@ -48,12 +48,12 @@ note prefix:
 | `:Ghostnotes grep_project` | Search note headlines and bodies in the current project |
 
 Command names support tab completion. Find and grep show the headline in the
-result list and the full note in the preview. Search includes the entire body,
-even when the matching text is not visible in the result list.
+result list and the full note in the preview. Grep searches the whole note for
+case-insensitive literal text, highlights matches, and scrolls to the first one.
 
 By default, Ghostnotes uses Snacks if available, then Telescope, then
-`vim.ui.select`. The fallback uses `vim.ui.input` for a case-insensitive,
-plain-text body search and does not show previews. Set `picker.provider` if
+`vim.ui.select`. The fallback uses `vim.ui.input` for the same plain-text
+search and does not show previews. Set `picker.provider` if
 you want to choose a picker explicitly. A requested but unavailable provider
 reports an error rather than silently choosing another.
 
@@ -121,15 +121,6 @@ repair the JSON file if the health check reports an error.
 Pickers keep previews in memory. Older versions wrote Markdown preview files
 under `stdpath("data") .. "/ghostnotes/previews"`; those files are not removed
 automatically.
-
-## Tests
-
-Run `./tests/run.sh`. Tests use isolated XDG directories and exercise real
-Snacks and Telescope pickers when they are installed under
-`~/.local/share/nvim/lazy`. To use other checkouts, set `SNACKS_DIR`,
-`TELESCOPE_DIR`, and `PLENARY_DIR`. Missing picker dependencies are reported
-as skipped. CI tests both integrations on Neovim 0.10 and the latest stable
-version.
 
 ## License
 

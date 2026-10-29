@@ -27,7 +27,8 @@ COMMANDS                                                          *:Ghostnotes*
 
 Subcommands support completion. Search uses Snacks or Telescope if available;
 the fallback prompts for plain text and uses |vim.ui.select()|. The fallback
-does not provide previews.
+does not provide previews. Grep matches literal text without case sensitivity.
+The preview highlights matches and scrolls to the first one.
 
 ==============================================================================
 KEYMAPS                                                    *ghostnotes-keymaps*

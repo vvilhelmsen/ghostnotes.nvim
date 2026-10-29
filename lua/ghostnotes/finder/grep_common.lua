@@ -49,8 +49,21 @@ function M.open_picker(opts)
       title = opts.title,
       prompt = "> ",
       items = items,
+      live = opts.search_body,
+      finder = opts.search_body and function(_, ctx)
+        local query = ctx.filter.search:lower()
+        local matches = {}
+        for _, item in ipairs(items) do
+          if item.note_text:lower():find(query, 1, true) then
+            matches[#matches + 1] = vim.tbl_extend("force", {}, item)
+          end
+        end
+        return matches
+      end or nil,
       format = common.format_ghostnote,
-      preview = common.snacks_preview,
+      preview = function(ctx)
+        common.snacks_preview(ctx, opts.search_body and ctx.picker:filter().search or nil)
+      end,
       confirm = function(picker, item)
         if not item then return end
         picker:close()
@@ -61,6 +74,11 @@ function M.open_picker(opts)
     local actions = require("telescope.actions")
     local action_state = require("telescope.actions.state")
     local make_display = common.tel_create_displayer(items)
+    local sorter = opts.search_body and require("telescope.sorters").new({
+      scoring_function = function(_, prompt, _, entry)
+        return entry.value.note_text:lower():find(vim.trim(prompt):lower(), 1, true) and 1 or -1
+      end,
+    }) or require("telescope.config").values.generic_sorter({})
     require("telescope.pickers").new({}, {
       prompt_title = opts.title,
       finder = require("telescope.finders").new_table({
@@ -69,8 +87,17 @@ function M.open_picker(opts)
           return { value = item, display = make_display, ordinal = item.text }
         end,
       }),
-      sorter = require("telescope.config").values.generic_sorter({}),
-      previewer = common.tel_previewer(),
+      sorter = sorter,
+      previewer = common.tel_previewer(opts.search_body),
+      on_complete = opts.search_body and { function(picker)
+        vim.schedule(function()
+          local state = picker.previewer and picker.previewer.state
+          if picker:get_selection() and state and state.bufnr and state.winid and vim.api.nvim_buf_is_valid(state.bufnr)
+            and vim.api.nvim_win_is_valid(state.winid) and vim.api.nvim_win_get_buf(state.winid) == state.bufnr then
+            common.highlight_preview(state.bufnr, state.winid, action_state.get_current_line())
+          end
+        end)
+      end } or nil,
       attach_mappings = function(prompt_bufnr)
         actions.select_default:replace(function()
           local selected = action_state.get_selected_entry()
@@ -83,8 +110,9 @@ function M.open_picker(opts)
   elseif provider == "select" then
     local function select_matching(query)
       if query == nil then return end
+      query = vim.trim(query):lower()
       local matching = vim.tbl_filter(function(item)
-        return item.text:lower():find(query:lower(), 1, true) ~= nil
+        return (opts.search_body and item.note_text or item.text):lower():find(query, 1, true) ~= nil
       end, items)
       if #matching == 0 then
         vim.notify("No matching ghost notes", vim.log.levels.INFO)

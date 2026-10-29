@@ -4,6 +4,7 @@ local storage = require("ghostnotes.storage")
 local setters = require("ghostnotes.note_operations.setters")
 local utils = require("ghostnotes.utils")
 local M = {}
+local preview_ns = vim.api.nvim_create_namespace("ghostnotes.preview")
 
 ---@class GhostnotesPickerItem
 ---@field bufname string
@@ -30,7 +31,7 @@ function M.build_items(notes, path_format, search_body)
         local source_file = vim.fn.fnamemodify(note.bufname, path_format)
         local head = get_headline(note)
         local display = ("%s:%d → %s"):format(source_file, note.row + 1, head)
-        local text = search_body and (display .. " " .. note.text:gsub("%s+", " ")) or display
+        local text = search_body and note.text:gsub("%s+", " ") or display
         items[#items + 1] = {
           bufname = note.bufname,
           row = note.row,
@@ -93,26 +94,69 @@ function M.tel_create_displayer(items)
   end
 end
 
+---@param buf integer
+---@param win integer
+---@param query? string
+function M.highlight_preview(buf, win, query)
+  vim.api.nvim_buf_clear_namespace(buf, preview_ns, 0, -1)
+  query = query and vim.trim(query) or ""
+  if query == "" then return end
+  local first
+  local needle = query:lower()
+  for row, line in ipairs(vim.api.nvim_buf_get_lines(buf, 0, -1, false)) do
+    local start = 1
+    local lower = line:lower()
+    while true do
+      local from, to = lower:find(needle, start, true)
+      if not from then break end
+      vim.api.nvim_buf_set_extmark(buf, preview_ns, row - 1, from - 1, {
+        end_col = to,
+        hl_group = "Search",
+        priority = 200,
+      })
+      first = first or { row, from - 1 }
+      start = from + 1
+    end
+  end
+  if first and vim.api.nvim_win_is_valid(win) then
+    vim.api.nvim_win_set_cursor(win, first)
+    vim.api.nvim_win_call(win, function() vim.cmd("normal! zz") end)
+  end
+end
+
 ---@param ctx table Snacks preview context
-function M.snacks_preview(ctx)
+---@param query? string
+function M.snacks_preview(ctx, query)
   ctx.preview:reset()
   local text = ctx.item and ctx.item.note_text or ""
-  ctx.preview:set_lines(text ~= "" and vim.split(text, "\n", { plain = true }) or { "(Empty note)" })
+  local lines = text ~= "" and vim.split(text, "\n", { plain = true }) or { "(Empty note)" }
+  ctx.preview:set_lines(lines)
   -- Keep the scratch buffer's filetype so render-markdown does not attach to it.
   if not pcall(vim.treesitter.start, ctx.buf, "markdown") then
     vim.bo[ctx.buf].syntax = "markdown"
   end
+  M.highlight_preview(ctx.buf, ctx.win, query)
 end
 
+---@param search_body? boolean
 ---@return table
-function M.tel_previewer()
+function M.tel_previewer(search_body)
   return require("telescope.previewers").new_buffer_previewer({
     title = "Note preview",
     define_preview = function(self, entry)
       local text = entry.value.note_text or ""
       local lines = text ~= "" and vim.split(text, "\n", { plain = true }) or { "(Empty note)" }
-      vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false, lines)
-      vim.bo[self.state.bufnr].filetype = "markdown"
+      local buf, win = self.state.bufnr, self.state.winid
+      vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+      vim.bo[buf].filetype = "markdown"
+      if search_body then
+        local query = require("telescope.actions.state").get_current_line()
+        vim.schedule(function()
+          if vim.api.nvim_buf_is_valid(buf) and vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_buf(win) == buf then
+            M.highlight_preview(buf, win, query)
+          end
+        end)
+      end
     end,
   })
 end
