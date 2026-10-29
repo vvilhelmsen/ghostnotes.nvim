@@ -1,10 +1,11 @@
 local M = {}
+
+---@param note GhostnotesNote
+---@return string
 function M.get_note_headline(note)
-	local first_line = note.text:match("([^\n]+)") or note.text
-	if note.text:find("\n") then
-		return first_line .. " [..]"
-	end
-	return first_line
+  local text = note.text or ""
+  local first_line = text:match("^[^\n]*") or ""
+  return first_line .. (text:find("\n", 1, true) and " [..]" or "")
 end
 
 return M

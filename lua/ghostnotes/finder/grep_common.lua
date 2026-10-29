@@ -1,81 +1,103 @@
-local config      = require("ghostnotes.config").opts
-local build_items = require("ghostnotes.finder.common").build_items
-
+local config = require("ghostnotes.config")
+local common = require("ghostnotes.finder.common")
 local M = {}
 
-function M.open_picker(opts)
-  local title       = opts.title
-  local notes       = opts.notes or {}
-  local path_format = opts.path_format or ":t"
-  local on_confirm  = opts.on_confirm or function(_) end
+---Resolve the configured picker. Explicitly requested missing providers are reported.
+---@return "snacks"|"telescope"|"select"|nil
+function M.provider()
+  local requested = config.opts.picker.provider
+  if requested == "select" then return "select" end
+  if requested == "auto" or requested == "snacks" then
+    local ok, snacks = pcall(require, "snacks")
+    local picker_ok, picker = pcall(function() return ok and snacks.picker end)
+    if picker_ok and picker and type(picker.pick) == "function"
+      and (requested == "snacks" or not (snacks.config and snacks.config.picker.enabled == false)) then
+      return "snacks"
+    end
+  end
+  if requested == "auto" or requested == "telescope" then
+    local ok = pcall(require, "telescope.pickers")
+    if ok then return "telescope" end
+  end
+  if requested ~= "auto" then
+    vim.notify("Ghostnotes picker provider is unavailable: " .. requested, vim.log.levels.ERROR)
+    return nil
+  end
+  return "select"
+end
 
-  local items = build_items(notes, path_format)
-  if vim.tbl_isempty(items) then
-    vim.notify("No ghost notes to search", vim.log.levels.INFO)
+---@class GhostnotesPickerOptions
+---@field title string
+---@field notes GhostnotesNote[]
+---@field search_body? boolean
+---@field on_confirm? fun(item: GhostnotesPickerItem)
+
+---@param opts GhostnotesPickerOptions
+function M.open_picker(opts)
+  local items, missing = common.build_items(opts.notes, config.opts.path_format, opts.search_body)
+  if missing > 0 then
+    vim.notify(("Skipped %d ghost note(s) whose source files are missing. Notes remain in storage."):format(missing), vim.log.levels.WARN)
+  end
+  if #items == 0 then
+    vim.notify("No available ghost notes to search", vim.log.levels.INFO)
     return
   end
-
-  if Snacks and Snacks.picker then
-    Snacks.picker.pick({
-      title = title,
+  local on_confirm = opts.on_confirm or common.open_note
+  local provider = M.provider()
+  if provider == "snacks" then
+    require("snacks").picker.pick({
+      title = opts.title,
       prompt = "> ",
       items = items,
-			preview=require("ghostnotes.finder.common").snacks_preview,
-      format = require("ghostnotes.finder.common").format_ghostnote,
+      format = common.format_ghostnote,
+      preview = common.snacks_preview,
       confirm = function(picker, item)
         if not item then return end
         picker:close()
-        local normalized = vim.tbl_extend("force", {}, item, {
-          row = math.max((item.row or 1) - 1, 0),
-        })
-        on_confirm(normalized)
+        on_confirm(item)
       end,
     })
-    return
-  end
-
-  local ok_t, telescope = pcall(require, "telescope")
-  if ok_t then
-    local pickers    = require("telescope.pickers")
-    local finders    = require("telescope.finders")
-    local conf       = require("telescope.config").values
-    local actions    = require("telescope.actions")
-    local action_st  = require("telescope.actions.state")
-
-    local make_display = require("ghostnotes.finder.common").tel_create_displayer(items)
-    local prev = require("ghostnotes.finder.common").tel_previewer()
-
-    pickers.new({}, {
-      prompt_title = title,
-      finder = finders.new_table({
+  elseif provider == "telescope" then
+    local actions = require("telescope.actions")
+    local action_state = require("telescope.actions.state")
+    local make_display = common.tel_create_displayer(items)
+    require("telescope.pickers").new({}, {
+      prompt_title = opts.title,
+      finder = require("telescope.finders").new_table({
         results = items,
-        entry_maker = function(it)
-          return {
-            value   = it,
-            display = make_display,
-            ordinal = (it.text or "") .. "\n" .. (it.note_text or ""),
-          }
+        entry_maker = function(item)
+          return { value = item, display = make_display, ordinal = item.text }
         end,
       }),
-      sorter = conf.generic_sorter({}),
-      previewer = prev,
-      attach_mappings = function(prompt_bufnr, _)
+      sorter = require("telescope.config").values.generic_sorter({}),
+      previewer = common.tel_previewer(),
+      attach_mappings = function(prompt_bufnr)
         actions.select_default:replace(function()
-          local sel = action_st.get_selected_entry()
+          local selected = action_state.get_selected_entry()
           actions.close(prompt_bufnr)
-          if sel and sel.value then on_confirm(sel.value) end
+          if selected and selected.value then on_confirm(selected.value) end
         end)
         return true
       end,
     }):find()
-    return
+  elseif provider == "select" then
+    local function select_matching(query)
+      if query == nil then return end
+      local matching = vim.tbl_filter(function(item)
+        return item.text:lower():find(query:lower(), 1, true) ~= nil
+      end, items)
+      if #matching == 0 then
+        vim.notify("No matching ghost notes", vim.log.levels.INFO)
+        return
+      end
+      vim.ui.select(matching, { prompt = opts.title, format_item = function(item) return item.display end }, on_confirm)
+    end
+    if opts.search_body then
+      vim.ui.input({ prompt = "Search ghost notes: " }, select_matching)
+    else
+      select_matching("")
+    end
   end
-
-  -- Last resort fallback
-  vim.ui.select(items, {
-    prompt = title,
-    format_item = function(it) return it.text end,
-  }, function(choice) if choice then on_confirm(choice) end end)
 end
 
 return M

@@ -1,138 +1,163 @@
-local config        = require("ghostnotes.config").opts
-local get_head      = require("ghostnotes.note_operations.getters").get_note_headline
-local utils         = require("ghostnotes.utils")
+local config = require("ghostnotes.config")
+local get_headline = require("ghostnotes.note_operations.getters").get_note_headline
+local storage = require("ghostnotes.storage")
+local setters = require("ghostnotes.note_operations.setters")
+local utils = require("ghostnotes.utils")
+local M = {}
 
-local M             = {}
+---@class GhostnotesPickerItem
+---@field bufname string
+---@field row integer Zero-based source line
+---@field lnum integer One-based source line for display
+---@field note_text string
+---@field source_file string
+---@field head string
+---@field display string
+---@field text string Searchable text, which may include the note body
+---@field timestamp? string
 
-local hl            = config.picker.highlighting
-local bo            = config.picker.boundaries
-
-local function oneline(s)
-  s = (s or ""):gsub("%s+", " ")
-  if #s > 200 then s = s:sub(1, 200) .. "…" end
-  return s
+---Build picker entries without writing note contents to preview files.
+---@param notes GhostnotesNote[]
+---@param path_format string
+---@param search_body? boolean
+---@return GhostnotesPickerItem[], integer missing
+function M.build_items(notes, path_format, search_body)
+  local items, missing = {}, 0
+  for _, note in ipairs(notes or {}) do
+    if type(note) == "table" and type(note.row) == "number" and note.row >= 0 and note.row % 1 == 0
+      and type(note.text) == "string" and type(note.bufname) == "string" then
+      if utils.source_exists(note) then
+        local source_file = vim.fn.fnamemodify(note.bufname, path_format)
+        local head = get_headline(note)
+        local display = ("%s:%d → %s"):format(source_file, note.row + 1, head)
+        local text = search_body and (display .. " " .. note.text:gsub("%s+", " ")) or display
+        items[#items + 1] = {
+          bufname = note.bufname,
+          row = note.row,
+          lnum = note.row + 1,
+          note_text = note.text,
+          timestamp = note.timestamp,
+          source_file = source_file,
+          head = head,
+          display = display,
+          text = text,
+        }
+      else
+        missing = missing + 1
+      end
+    end
+  end
+  return items, missing
 end
 
-M.format_ghostnote = function(item, picker)
+---@param item GhostnotesPickerItem
+---@return table[]
+function M.format_ghostnote(item)
+  local hl = config.opts.picker.highlighting
   return {
-    { item.source_file, "Directory" },
+    { item.source_file, hl.file },
     { ":", "Comment" },
-    { tostring(item.row), "LineNr" },
+    { tostring(item.lnum), hl.row },
     { " → ", "Comment" },
-    { item.head, "Normal" },
+    { item.head, hl.head },
   }
 end
 
-M.build_items = function(notes, path_format)
-  local out = {}
-  for _, n in ipairs(notes or {}) do
-    local source_file = vim.fn.fnamemodify(n.bufname, path_format)
-    local head = get_head(n)
-    local row = (n.row or 0) + 1
-    local display = source_file .. ":" .. row .. " → " .. head
-    local body = oneline(n.text)
-    
-    -- Create preview markdown file for Snacks to render
-    local preview_file = utils.create_preview_file(n)
-    
-    table.insert(out, {
-      bufname     = n.bufname,
-      row         = row,
-      note_text   = n.text,
-      head        = head,
-      timestamp   = n.timestamp,
-      source_file = source_file,  -- Keep original file for display
-      -- right now grepping only works if we display the body. Looks ugly but works
-      text        = body ~= "" and (display .. " — " .. body) or display,
-      file        = preview_file,  -- Point to preview markdown file for Snacks
-      display     = display,
+---@param items GhostnotesPickerItem[]
+---@return fun(entry: table): string, table
+function M.tel_create_displayer(items)
+  local entry_display = require("telescope.pickers.entry_display")
+  local opts = config.opts.picker
+  local function width(field, bounds)
+    local result = bounds.min or 0
+    for _, item in ipairs(items) do
+      result = math.max(result, vim.fn.strdisplaywidth(tostring(item[field])))
+    end
+    return bounds.max and math.min(result, bounds.max) or result
+  end
+  local displayer = entry_display.create({
+    separator = opts.separator,
+    items = {
+      { width = width("source_file", opts.boundaries.file) },
+      { width = width("lnum", opts.boundaries.row) },
+      { remaining = true },
+    },
+  })
+  return function(entry)
+    local item = entry.value
+    return displayer({
+      { item.source_file, opts.highlighting.file },
+      { tostring(item.lnum), opts.highlighting.row },
+      { item.head, opts.highlighting.head },
     })
   end
-  return out
 end
 
-M.tel_create_displayer = function(items)
-  local entry_display = require "telescope.pickers.entry_display"
-  local function calc_field_length(name, entries, min, max)
-    local length = min or 0
-    for _, entry in pairs(entries) do
-      local field = tostring(entry[name])
-      if field and #field > length then
-        length = #field
-        if max and length >= max then return end
-      end
-    end
-    return length
-  end
-
-  local displayer = entry_display.create({
-    separator = config.picker.separator,
-    items = {
-      { width = calc_field_length("source_file", items, bo.file.min, bo.file.min) },
-      { width = calc_field_length("row", items, bo.row.min, bo.row.max) },
-      { remaining = true }
-    }
-  })
-
-  local function make_display(entry)
-    local val = entry.value
-    return displayer {
-      { val.source_file, hl.file },
-      { val.row,  hl.row },
-      { val.head, hl.head },
-    }
-  end
-
-  return make_display
-end
-
--- Custom Snacks preview function that reads the preview .md file
--- and applies treesitter markdown highlighting without triggering render-markdown
-M.snacks_preview = function(ctx)
-  local item = ctx.item
-  if not item or not item.file then
-    ctx.preview:notify("No preview available", "warn")
-    return
-  end
-
-  local path = item.file
-  local file = io.open(path, "r")
-  if not file then
-    ctx.preview:notify("Preview file not found", "warn")
-    return
-  end
-
-  local lines = {}
-  for line in file:lines() do
-    table.insert(lines, line)
-  end
-  file:close()
-
-  if #lines == 0 then
-    lines = { "(Empty note)" }
-  end
-
+---@param ctx table Snacks preview context
+function M.snacks_preview(ctx)
   ctx.preview:reset()
-  ctx.preview:set_lines(lines)
-  pcall(vim.treesitter.start, ctx.buf, "markdown")
+  local text = ctx.item and ctx.item.note_text or ""
+  ctx.preview:set_lines(text ~= "" and vim.split(text, "\n", { plain = true }) or { "(Empty note)" })
+  -- Keep the scratch buffer's filetype so render-markdown does not attach to it.
+  if not pcall(vim.treesitter.start, ctx.buf, "markdown") then
+    vim.bo[ctx.buf].syntax = "markdown"
+  end
 end
 
-M.tel_previewer = function()
-  local previewers = require("telescope.previewers")
-
-  return previewers.new_buffer_previewer({
-    title = "Note Preview",
-    define_preview = function(self, entry, _)
-      local note = entry.value
-      local lines = {}
-      for line in (note.note_text or ""):gmatch("([^\n]*)\n?") do
-        table.insert(lines, line)
-      end
-      if #lines == 0 then lines = { "(Empty note)" } end
+---@return table
+function M.tel_previewer()
+  return require("telescope.previewers").new_buffer_previewer({
+    title = "Note preview",
+    define_preview = function(self, entry)
+      local text = entry.value.note_text or ""
+      local lines = text ~= "" and vim.split(text, "\n", { plain = true }) or { "(Empty note)" }
       vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false, lines)
-      vim.api.nvim_set_option_value("filetype", "markdown", { scope = "local", buf = self.state.bufnr })
+      vim.bo[self.state.bufnr].filetype = "markdown"
     end,
   })
+end
+
+---Open a picker result, relocating an out-of-range note only when a free line exists.
+---@param item GhostnotesPickerItem?
+function M.open_note(item)
+  if not item then return end
+  if not utils.source_exists(item) then
+    vim.notify("Ghost note source no longer exists: " .. item.bufname, vim.log.levels.WARN)
+    return
+  end
+  local bufnr = vim.fn.bufnr(item.bufname, false)
+  local ok, err = pcall(function()
+    if bufnr ~= -1 then
+      vim.cmd("buffer " .. bufnr)
+    else
+      vim.cmd("edit " .. vim.fn.fnameescape(item.bufname))
+    end
+  end)
+  if not ok then
+    vim.notify("Cannot open ghost note source: " .. tostring(err), vim.log.levels.ERROR)
+    return
+  end
+  bufnr = vim.api.nvim_get_current_buf()
+  local row = item.row
+  local line_count = vim.api.nvim_buf_line_count(bufnr)
+  if row >= line_count then
+    local used = {}
+    for _, note in ipairs(storage.for_buffer(item.bufname)) do used[note.row] = true end
+    local new_row
+    for candidate = line_count - 1, 0, -1 do
+      if not used[candidate] then new_row = candidate; break end
+    end
+    if new_row then
+      storage.move({ bufname = item.bufname, row = row, text = item.note_text }, new_row)
+      vim.notify(("Line %d no longer exists; moved ghost note to line %d"):format(row + 1, new_row + 1), vim.log.levels.INFO)
+      row = new_row
+    else
+      vim.notify("Ghost note is past the end of the file and no line is free; note was kept in storage", vim.log.levels.WARN)
+      row = line_count - 1
+    end
+  end
+  setters.apply_notes_for_buffer(bufnr)
+  vim.api.nvim_win_set_cursor(0, { row + 1, 0 })
 end
 
 return M

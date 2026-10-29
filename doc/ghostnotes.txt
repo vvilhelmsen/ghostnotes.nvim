@@ -1,0 +1,100 @@
+*ghostnotes.txt*                 Persistent virtual notes for Neovim
+
+==============================================================================
+INTRODUCTION                                                     *ghostnotes*
+
+Ghostnotes attaches Markdown notes to file paths and line numbers. The first
+line appears as virtual text. The source file itself is not changed.
+
+Setup: >lua
+    require("ghostnotes").setup({})
+<
+Place the cursor on a line in a named file and use |:Ghostnotes| edit. Write
+the headline on the first line and the body below it. With autowrite enabled,
+press q to save and close, or use :w to save without closing.
+
+==============================================================================
+COMMANDS                                                          *:Ghostnotes*
+
+:Ghostnotes edit           Create or edit the current line's note.
+:Ghostnotes clear          Delete it and yank its text to register g.
+:Ghostnotes yank           Yank it to register g.
+:Ghostnotes paste          Paste register g as a note on the current line.
+:Ghostnotes find           Find notes across all known files.
+:Ghostnotes find_project   Find notes in the current Git project.
+:Ghostnotes grep           Search note headlines and bodies globally.
+:Ghostnotes grep_project   Search note headlines and bodies in the project.
+
+Subcommands support completion. Search uses Snacks or Telescope if available;
+the fallback prompts for plain text and uses |vim.ui.select()|. The fallback
+does not provide previews.
+
+==============================================================================
+KEYMAPS                                                    *ghostnotes-keymaps*
+
+Existing default mappings are retained for compatibility:
+
+    <leader>gne    :Ghostnotes edit
+    <leader>gnc    :Ghostnotes clear
+    <leader>gny    :Ghostnotes yank
+    <leader>gnp    :Ghostnotes paste
+    <leader>gnf    :Ghostnotes find
+    <leader>gnF    :Ghostnotes find_project
+    <leader>gng    :Ghostnotes grep
+    <leader>gnG    :Ghostnotes grep_project
+
+The legacy keymaps option is deprecated. Disable these mappings and define
+your own using the commands: >lua
+    require("ghostnotes").setup({ keymaps = false })
+    vim.keymap.set("n", "<leader>gne", "<cmd>Ghostnotes edit<cr>",
+      { desc = "Edit ghost note" })
+<
+Existing keymaps tables continue to work with a warning. Individual mapping
+values can be set to false.
+
+==============================================================================
+CONFIGURATION                                               *ghostnotes-config*
+
+Defaults: >lua
+    require("ghostnotes").setup({
+      autowrite = true,
+      namespace = "ghostnotes",
+      note_prefix = "👻 ",
+      path_format = ":t",
+      picker = {
+        provider = "auto",
+        highlighting = { file = "Normal", row = "LineNr", head = "String" },
+        boundaries = { file = { min = 5, max = 25 }, row = { min = 0 } },
+        separator = " ",
+      },
+    })
+<
+autowrite      Save a modified note when leaving its window. q saves and
+               closes. When false, use :w, :wq, or ZZ.
+namespace      Namespace used for virtual text.
+note_prefix    Prefix shown before the note headline.
+path_format    Filename modifiers used in pickers. See |filename-modifiers|.
+picker.provider  "auto", "snacks", "telescope", or "select". Auto prefers
+               Snacks, then Telescope, then vim.ui.select.
+picker.highlighting  Highlight groups for the file, row, and headline.
+picker.boundaries    Minimum and maximum Telescope column widths.
+picker.separator     Telescope column separator.
+
+==============================================================================
+STORAGE                                                     *ghostnotes-storage*
+
+The global file is stdpath("data")/ghostnotes/ghostnotes.json. Project notes
+are also written to .ghostnotes.json in the source file's Git root. Notes
+contain plain text; keep sensitive content out of the JSON files.
+
+Stored line numbers do not automatically follow edits. An out-of-range note
+is moved to the last unoccupied line when selected, if one exists. Notes for
+missing files are hidden in pickers but kept in storage. Restoring the file at
+its original path makes the notes available again.
+
+Run :checkhealth ghostnotes to check the store, missing files, and pickers.
+If a store contains invalid JSON, Ghostnotes refuses to overwrite it. Back it
+up and repair it before saving more notes.
+
+==============================================================================
+ vim:tw=78:ts=8:noet:ft=help:norl:

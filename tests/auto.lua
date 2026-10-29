@@ -1,0 +1,11 @@
+vim.opt.runtimepath:append(vim.env.SNACKS_DIR)
+vim.opt.runtimepath:append(vim.env.PLENARY_DIR)
+vim.opt.runtimepath:append(vim.env.TELESCOPE_DIR)
+local snacks = require("snacks")
+snacks.setup({ picker = { enabled = true } })
+require("ghostnotes").setup({ keymaps = false })
+local picker = require("ghostnotes.finder.grep_common")
+assert(picker.provider() == "snacks", "auto should prefer Snacks when both pickers are available")
+snacks.config.picker.enabled = false
+assert(picker.provider() == "telescope", "auto should fall back to Telescope when Snacks picker is disabled")
+print("PASS picker selection with Snacks and Telescope installed")
