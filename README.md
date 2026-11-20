@@ -25,14 +25,10 @@ save and close the note. Use `:Ghostnotes find` to find it again, or
 Run `:checkhealth ghostnotes` to check the note directory and picker setup.
 See `:help ghostnotes` for the full reference.
 
-## In action
+## Showcase
 
-The note editor and a project-wide body search, using Snacks and a custom
-note prefix:
+![Create, save, and search a note](config/ghostnotes-config-demo.gif)
 
-![Editing a ghost note](assets/note-editor.png)
-
-![Searching notes with a preview](assets/search.png)
 
 ## Commands
 
